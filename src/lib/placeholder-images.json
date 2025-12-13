@@ -1,0 +1,112 @@
+{
+  "placeholderImages": [
+    {
+      "id": "avatar-1",
+      "description": "User Avatar 1",
+      "imageUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjU1NzE4NDR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "avatar-2",
+      "description": "User Avatar 2",
+      "imageUrl": "https://images.unsplash.com/photo-1525134479668-1bee5c7c6845?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHx3b21hbiUyMHNtaWxpbmd8ZW58MHx8fHwxNzY1NTg0NzU5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman smiling"
+    },
+    {
+      "id": "avatar-3",
+      "description": "User Avatar 3",
+      "imageUrl": "https://images.unsplash.com/photo-1621873982312-1f83e89a2f21?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxtYW4lMjBnbGFzc2VzfGVufDB8fHx8MTc2NTUxNDUxMHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man glasses"
+    },
+    {
+      "id": "avatar-4",
+      "description": "User Avatar 4",
+      "imageUrl": "https://images.unsplash.com/photo-1542596594-649edbc13630?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxwZXJzb24lMjBoYXBweXxlbnwwfHx8fDE3NjU0OTgxNDd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person happy"
+    },
+    {
+      "id": "avatar-5",
+      "description": "User Avatar 5",
+      "imageUrl": "https://images.unsplash.com/photo-1545209536-c79b0603d7ad?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHx3b21hbiUyMGxhdWdoaW5nfGVufDB8fHx8MTc2NTU3NTQ1Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman laughing"
+    },
+    {
+      "id": "post-1-1",
+      "description": "Post Image 1-1",
+      "imageUrl": "https://images.unsplash.com/photo-1601281426795-9fedf41df8d1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtb3VudGFpbiUyMGxhbmRzY2FwZXxlbnwwfHx8fDE3NjU1ODYwOTd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "mountain landscape"
+    },
+    {
+      "id": "post-1-2",
+      "description": "Post Image 1-2",
+      "imageUrl": "https://images.unsplash.com/photo-1506606401543-2e73709cebb4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjaXR5JTIwbmlnaHR8ZW58MHx8fHwxNzY1NTYyMTQyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "city night"
+    },
+    {
+      "id": "post-2-1",
+      "description": "Post Image 2-1",
+      "imageUrl": "https://images.unsplash.com/photo-1623967680551-3e4694e2c9ad?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxmb3Jlc3QlMjBwYXRofGVufDB8fHx8MTc2NTUzMTY4MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "forest path"
+    },
+    {
+      "id": "post-3-1",
+      "description": "Post Image 3-1",
+      "imageUrl": "https://images.unsplash.com/photo-1601562219653-0f16522227b3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8YmVhY2glMjBzdW5zZXR8ZW58MHx8fHwxNzY1NTYyMjE4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "beach sunset"
+    },
+    {
+      "id": "post-3-2",
+      "description": "Post Image 3-2",
+      "imageUrl": "https://images.unsplash.com/photo-1570077533412-664829f85aed?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxvY2VhbiUyMHdhdmVzfGVufDB8fHx8MTc2NTYwMjg1MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "ocean waves"
+    },
+    {
+      "id": "post-3-3",
+      "description": "Post Image 3-3",
+      "imageUrl": "https://images.unsplash.com/photo-1672841828459-bc913fdcd995?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx0cm9waWNhbCUyMGlzbGFuZHxlbnwwfHx8fDE3NjU2MTMxMTd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "tropical island"
+    },
+    {
+      "id": "post-4-1",
+      "description": "Post Image 4-1",
+      "imageUrl": "https://images.unsplash.com/photo-1614595737683-1740e41bfaac?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxtb2Rlcm4lMjBhcmNoaXRlY3R1cmV8ZW58MHx8fHwxNzY1NjAwOTQwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "modern architecture"
+    },
+    {
+      "id": "landing-hero",
+      "description": "A person meditating peacefully outdoors",
+      "imageUrl": "https://images.unsplash.com/photo-1506126613408-eca07ce68773?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtZWRpdGF0aW9ufGVufDB8fHx8MTc2NTg2NTc3Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "meditation outdoors"
+    },
+    {
+      "id": "team-member-1",
+      "description": "Portrait of a friendly-looking woman",
+      "imageUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwb3J0cmFpdCUyMGZlbWFsZXxlbnwwfHx8fDE3NjU4NjU4MjR8MA&ixlib=rb-4.1.0&q=80&w=400",
+      "imageHint": "female portrait"
+    },
+    {
+      "id": "team-member-2",
+      "description": "Portrait of a smiling man",
+      "imageUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtYWxlJTIwcG9ydHJhaXR8ZW58MHx8fHwxNzY1ODY1ODQ2fDA&ixlib=rb-4.1.0&q=80&w=400",
+      "imageHint": "male portrait"
+    },
+    {
+      "id": "team-member-3",
+      "description": "Portrait of a person with a warm smile",
+      "imageUrl": "https://images.unsplash.com/photo-1580489944761-15a19d654956?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxwb3J0cmFpdHxlbnwwfHx8fDE3NjU4NjU4ODR8MA&ixlib=rb-4.1.0&q=80&w=400",
+      "imageHint": "person smiling"
+    },
+    {
+      "id": "feature-connect",
+      "description": "A group of diverse friends laughing together",
+      "imageUrl": "https://images.unsplash.com/photo-1538688423619-a81d3f23454b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxkaXZlcnNlJTIwZnJpZW5kcyUyMGxhdWdoaW5nfGVufDB8fHx8MTc2NTg5MzY0OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "diverse friends"
+    },
+    {
+      "id": "feature-converse",
+      "description": "Two people having a deep conversation over coffee",
+      "imageUrl": "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHx0d28lMjBwZW9wbGUlMjB0YWxraW5nJTIwY29mZmVlfGVufDB8fHx8MTc2NTg5Mzc0Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "people talking"
+    }
+  ]
+}
