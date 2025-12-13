@@ -1,4 +1,4 @@
-# Firebase Studio
+# MindMap-FrontEnd
 
 This is a NextJS starter in Firebase Studio.
 
