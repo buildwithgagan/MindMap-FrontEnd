@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { authService } from "@/lib/api";
 import { apiClient } from "@/lib/api/client";
 import { socketClient } from "@/lib/socket";
+import { toast } from "@/hooks/use-toast";
 import type { User } from "@/lib/api";
 
 interface AuthContextType {
@@ -20,6 +21,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [socketConnected, setSocketConnected] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -31,22 +33,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Validate session by fetching current user
-  const validateSession = async (): Promise<boolean> => {
+  const validateSession = async (shouldConnectSocket: boolean = true): Promise<boolean> => {
     if (!hasTokens()) {
       return false;
     }
 
     try {
       const response = await authService.getCurrentUser();
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 [AuthContext] getCurrentUser response:', {
+          success: response.success,
+          hasData: !!response.data,
+          userId: response.data?.id,
+          userObject: response.data,
+        });
+      }
       if (response.success && response.data) {
+        // getCurrentUser() now extracts and returns just the user object
         setUser(response.data);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ [AuthContext] User set with ID:', response.data.id);
+        }
         
-        // Connect to WebSocket when user is authenticated
-        const accessToken = apiClient.getAccessToken();
-        if (accessToken) {
-          socketClient.connect(accessToken).catch((error) => {
-            console.error('Failed to connect to WebSocket:', error);
+        // Connect to WebSocket only once when user is first authenticated
+        if (shouldConnectSocket && !socketConnected) {
+          const accessToken = apiClient.getAccessToken();
+          console.log('🔍 [DEBUG] Attempting to connect socket:', {
+            hasToken: !!accessToken,
+            tokenLength: accessToken?.length || 0,
+            socketConnected,
+            isAlreadyConnected: socketClient.isConnected(),
+            connectionStatus: socketClient.getConnectionStatus(),
           });
+          
+          if (accessToken && !socketClient.isConnected()) {
+            console.log('🔌 [DEBUG] Initiating WebSocket connection...');
+            socketClient.connect(accessToken)
+              .then(() => {
+                console.log('✅ [DEBUG] WebSocket connection successful');
+                setSocketConnected(true);
+              })
+              .catch((error) => {
+                console.error('❌ [DEBUG] Failed to connect to WebSocket:', error);
+                console.error('❌ [DEBUG] Error message:', error.message);
+                console.error('❌ [DEBUG] Error stack:', error.stack);
+                console.error('⚠️ This is normal if the WebSocket server is not running.');
+                console.error('⚠️ The app will continue to work, but real-time features will be unavailable.');
+                console.error('💡 [DEBUG] Connection status after failure:', socketClient.getConnectionStatus());
+                // Don't show error toast for connection failures - it's expected if server isn't running
+                // The socket will automatically retry when the server becomes available
+              });
+          } else {
+            console.warn('⚠️ [DEBUG] Skipping socket connection:', {
+              hasToken: !!accessToken,
+              isAlreadyConnected: socketClient.isConnected(),
+              socketConnected,
+            });
+          }
         }
         
         return true;
@@ -64,12 +107,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (retryResponse.success && retryResponse.data) {
               setUser(retryResponse.data);
               
-              // Connect to WebSocket when user is authenticated
-              const accessToken = apiClient.getAccessToken();
-              if (accessToken) {
-                socketClient.connect(accessToken).catch((error) => {
-                  console.error('Failed to connect to WebSocket:', error);
-                });
+              // Connect to WebSocket only once when user is first authenticated
+              if (shouldConnectSocket && !socketConnected) {
+                const accessToken = apiClient.getAccessToken();
+                if (accessToken && !socketClient.isConnected()) {
+                  socketClient.connect(accessToken)
+                    .then(() => {
+                      setSocketConnected(true);
+                    })
+                    .catch((error) => {
+                      console.error('⚠️ Failed to connect to WebSocket:', error);
+                      console.error('⚠️ This is normal if the WebSocket server is not running.');
+                      console.error('⚠️ The app will continue to work, but real-time features will be unavailable.');
+                    });
+                }
               }
               
               return true;
@@ -78,6 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (refreshError) {
           // Refresh failed, session is invalid
           apiClient.clearTokens();
+          setSocketConnected(false);
           return false;
         }
       }
@@ -95,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Disconnect WebSocket
       socketClient.disconnect();
+      setSocketConnected(false);
       
       const refreshToken = apiClient.getRefreshToken();
       if (refreshToken) {
@@ -136,27 +189,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Listen for successful authentication to refresh session
     const handleAuthSuccess = () => {
-      validateSession().then((isValid) => {
+      // Reset socket connected flag on new auth to allow reconnection
+      setSocketConnected(false);
+      validateSession(true).then((isValid) => {
         if (isValid) {
           // WebSocket connection is handled in validateSession
         }
       });
     };
 
+    // Listen for socket connection events
+    const handleSocketConnect = () => {
+      setSocketConnected(true);
+      toast({
+        title: "Socket Connected",
+        description: "Real-time messaging is now active",
+        duration: 3000,
+      });
+    };
+
+    // Listen for socket disconnection
+    const handleSocketDisconnect = () => {
+      setSocketConnected(false);
+    };
+
+    // Listen for socket errors (for debugging)
+    const handleSocketError = (data: any) => {
+      console.error('Socket error event:', data);
+      // Only show toast for non-connection errors to avoid spam
+      if (data.error && !data.error.message?.includes('connection')) {
+        toast({
+          title: "Socket Error",
+          description: data.error.message || "An error occurred with the WebSocket connection",
+          variant: "destructive",
+          duration: 5000,
+        });
+      }
+    };
+
     window.addEventListener("auth:token-expired", handleTokenExpired);
     window.addEventListener("auth:success", handleAuthSuccess);
+    
+    // Subscribe to socket events
+    const unsubscribeSocketConnect = socketClient.on('connect', handleSocketConnect);
+    const unsubscribeSocketDisconnect = socketClient.on('disconnect', handleSocketDisconnect);
+    const unsubscribeSocketError = socketClient.on('error', handleSocketError);
 
     return () => {
       window.removeEventListener("auth:token-expired", handleTokenExpired);
       window.removeEventListener("auth:success", handleAuthSuccess);
+      unsubscribeSocketConnect();
+      unsubscribeSocketDisconnect();
+      unsubscribeSocketError();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Re-validate session when pathname changes (but not on initial load)
+  // Don't connect socket on pathname changes - only validate user session
   useEffect(() => {
     if (!loading && hasTokens() && !user && pathname) {
-      validateSession();
+      validateSession(false); // Don't connect socket on tab navigation
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);

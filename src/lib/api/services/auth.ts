@@ -61,7 +61,18 @@ export const authService = {
 
   // Get current user
   async getCurrentUser(): Promise<ApiResponse<User>> {
-    return apiClient.fetchWithAuth<User>('/api/auth/me');
+    const response = await apiClient.fetchWithAuth<AuthResponse>('/api/auth/me');
+    
+    // API returns { user, accessToken, refreshToken } in data
+    // Extract and return just the user
+    if (response.success && response.data) {
+      return {
+        success: true,
+        data: response.data.user,
+        message: response.message,
+      };
+    }
+    return response as any;
   },
 
   // Refresh token

@@ -50,6 +50,7 @@ export type Message = {
     content: string;
     timestamp: string;
     status: 'sent' | 'delivered' | 'read';
+    createdAt?: string; // ISO timestamp for sorting
 }
 
 export type Chat = {

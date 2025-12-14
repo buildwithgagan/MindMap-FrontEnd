@@ -3,10 +3,12 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { Chat } from "@/lib/data";
-import { Search, AlertCircle } from "lucide-react";
+import { Search, AlertCircle, Wifi, WifiOff } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { socketClient } from "@/lib/socket";
+import { useEffect, useState } from "react";
 
 type ChatListProps = {
     conversations: Chat[];
@@ -18,10 +20,66 @@ type ChatListProps = {
 }
 
 export default function ChatList({ conversations, selectedChat, onSelectChat, loading = false, error = null, onRetry }: ChatListProps) {
+    const [socketStatus, setSocketStatus] = useState(socketClient.getConnectionStatus());
+
+    useEffect(() => {
+        // Update socket status periodically
+        const interval = setInterval(() => {
+            setSocketStatus(socketClient.getConnectionStatus());
+        }, 2000);
+
+        // Listen for socket events
+        const unsubscribeConnect = socketClient.on('connect', () => {
+            setSocketStatus(socketClient.getConnectionStatus());
+        });
+        const unsubscribeDisconnect = socketClient.on('disconnect', () => {
+            setSocketStatus(socketClient.getConnectionStatus());
+        });
+        const unsubscribeError = socketClient.on('error', () => {
+            setSocketStatus(socketClient.getConnectionStatus());
+        });
+
+        return () => {
+            clearInterval(interval);
+            unsubscribeConnect();
+            unsubscribeDisconnect();
+            unsubscribeError();
+        };
+    }, []);
+
     return (
         <div className="flex flex-col border-r h-full">
             <div className="p-4 border-b">
-                <h1 className="text-2xl font-bold">Messages</h1>
+                <div className="flex items-center justify-between mb-2">
+                    <h1 className="text-2xl font-bold">Messages</h1>
+                    <div className="flex items-center gap-2">
+                        {socketStatus.isConnected ? (
+                            <div className="flex items-center gap-1 text-green-500 text-xs">
+                                <Wifi className="h-3 w-3" />
+                                <span>Connected</span>
+                            </div>
+                        ) : socketStatus.isConnecting ? (
+                            <div className="flex items-center gap-1 text-yellow-500 text-xs">
+                                <Wifi className="h-3 w-3 animate-pulse" />
+                                <span>Connecting...</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-1 text-red-500 text-xs">
+                                <WifiOff className="h-3 w-3" />
+                                <span>Disconnected</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+                {!socketStatus.isConnected && !socketStatus.isConnecting && (
+                    <Alert variant="destructive" className="mt-2 mb-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription className="text-xs">
+                            Socket connection failed. Real-time features unavailable. 
+                            {socketStatus.reconnectAttempts > 0 && ` (Retry ${socketStatus.reconnectAttempts}/${socketStatus.reconnectAttempts})`}
+                        </AlertDescription>
+                    </Alert>
+                )}
                 <div className="relative mt-4">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input placeholder="Search messages" className="pl-9 rounded-full"/>

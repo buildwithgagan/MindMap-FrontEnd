@@ -118,4 +118,17 @@ img[class*="object-cover"] {
             transform: translateX(100%);
         }
     }
+    
+    @keyframes typing-bounce {
+        0%, 60%, 100% {
+            transform: translateY(0);
+        }
+        30% {
+            transform: translateY(-10px);
+        }
+    }
+    
+    .animate-typing-bounce {
+        animation: typing-bounce 1.4s ease-in-out infinite;
+    }
 }

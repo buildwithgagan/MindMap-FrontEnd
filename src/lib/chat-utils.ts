@@ -31,12 +31,44 @@ export function mapApiUserToUser(apiUser: ApiUser, currentUserId: string): User 
  * Maps API Message to component Message type
  */
 export function mapApiMessageToMessage(apiMessage: ApiMessage, currentUserId: string): Message {
+  // Use sender.id instead of senderId (senderId might be [object Object])
+  const senderId = apiMessage.sender?.id || apiMessage.senderId;
+  const isMe = senderId === currentUserId;
+  
+  // Debug log to see mapping
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔄 mapApiMessageToMessage:', {
+      messageId: apiMessage.id,
+      senderId,
+      senderObjectId: apiMessage.sender?.id,
+      originalSenderId: apiMessage.senderId,
+      currentUserId,
+      isEqual: senderId === currentUserId,
+      isMe,
+      senderIdType: typeof senderId,
+      currentUserIdType: typeof currentUserId,
+      content: apiMessage.content.substring(0, 30),
+      comparison: `${senderId} === ${currentUserId} ? ${senderId === currentUserId}`,
+    });
+  }
+  
+  // Normalize status from backend (uppercase) to frontend format (lowercase)
+  // Backend sends: 'SENT' | 'DELIVERED' | 'READ'
+  // Frontend expects: 'sent' | 'delivered' | 'read'
+  const normalizeStatus = (status: string): 'sent' | 'delivered' | 'read' => {
+    const upperStatus = status.toUpperCase();
+    if (upperStatus === 'READ') return 'read';
+    if (upperStatus === 'DELIVERED') return 'delivered';
+    return 'sent'; // Default to 'sent' for SENT or any other value
+  };
+
   return {
     id: apiMessage.id,
-    sender: apiMessage.senderId === currentUserId ? 'me' : mapApiUserToUser(apiMessage.sender, currentUserId),
+    sender: isMe ? 'me' : mapApiUserToUser(apiMessage.sender, currentUserId),
     content: apiMessage.content,
     timestamp: formatTimestamp(apiMessage.createdAt),
-    status: apiMessage.status === 'read' ? 'read' : apiMessage.status === 'delivered' ? 'delivered' : 'sent',
+    status: normalizeStatus(apiMessage.status || 'SENT'),
+    createdAt: apiMessage.createdAt, // Store original timestamp for sorting
   };
 }
 
