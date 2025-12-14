@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, Bell, MessageSquare, User, Pencil, LogIn } from "lucide-react";
+import { Home, Search, Bell, MessageSquare, User, Pencil, LogIn, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Logo } from "./Logo";
 import { CreatePostDialog } from "@/components/feed/CreatePostDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navLinks = [
   { href: "/home", label: "Home", icon: Home },
@@ -18,12 +19,17 @@ const navLinks = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { isAuthenticated, logout, loading } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+  };
 
   return (
     <aside className="fixed left-0 top-0 hidden h-full w-64 flex-col border-r bg-card/80 p-6 backdrop-blur-sm md:flex">
-      <Link href="/home" className="mb-10">
+      <div className="mb-10">
         <Logo />
-      </Link>
+      </div>
 
       <nav className="flex flex-1 flex-col justify-between">
         <ul className="space-y-2">
@@ -52,12 +58,29 @@ export default function Sidebar() {
                   New Post
               </Button>
             </CreatePostDialog>
-            <Link href="/auth">
+            {loading ? (
+              <Button size="lg" variant="secondary" className="w-full rounded-full" disabled>
+                <LogIn className="mr-2 h-5 w-5" />
+                Loading...
+              </Button>
+            ) : isAuthenticated ? (
+              <Button 
+                size="lg" 
+                variant="secondary" 
+                className="w-full rounded-full"
+                onClick={handleLogout}
+              >
+                <LogOut className="mr-2 h-5 w-5" />
+                Logout
+              </Button>
+            ) : (
+              <Link href="/auth">
                 <Button size="lg" variant="secondary" className="w-full rounded-full">
-                    <LogIn className="mr-2 h-5 w-5" />
-                    Sign In
+                  <LogIn className="mr-2 h-5 w-5" />
+                  Sign In
                 </Button>
-            </Link>
+              </Link>
+            )}
         </div>
       </nav>
     </aside>

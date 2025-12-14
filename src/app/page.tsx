@@ -1,13 +1,36 @@
+"use client";
+
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ArrowRight, Brain, Heart, Leaf, MessageCircle, Share2, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Logo } from "@/components/shared/Logo";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function LandingPage() {
+  const router = useRouter();
+  const { isAuthenticated, loading } = useAuth();
+
+  // Optionally redirect authenticated users to home
+  // Commented out to allow authenticated users to view landing page if they want
+  // useEffect(() => {
+  //   if (!loading && isAuthenticated) {
+  //     router.push("/home");
+  //   }
+  // }, [isAuthenticated, loading, router]);
+
+  const handleAuthClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (isAuthenticated) {
+      e.preventDefault();
+      router.push("/home");
+    }
+    // If not authenticated, let the link work normally (go to /auth)
+  };
   const heroImage = PlaceHolderImages.find(img => img.id === 'landing-hero');
   const featureConnectImage = PlaceHolderImages.find(img => img.id === 'feature-connect');
   const featureConverseImage = PlaceHolderImages.find(img => img.id === 'feature-converse');
@@ -41,12 +64,30 @@ export default function LandingPage() {
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
           <Logo />
           <div className="flex items-center gap-4">
-            <Link href="/auth">
-              <Button variant="secondary" className="rounded-full">Sign In</Button>
-            </Link>
-            <Link href="/auth">
-              <Button className="rounded-full">Get Started</Button>
-            </Link>
+            {loading ? (
+              <>
+                <Button variant="secondary" className="rounded-full" disabled>Sign In</Button>
+                <Button className="rounded-full" disabled>Get Started</Button>
+              </>
+            ) : isAuthenticated ? (
+              <>
+                <Link href="/home">
+                  <Button variant="secondary" className="rounded-full">Go to Home</Button>
+                </Link>
+                <Link href="/profile/me">
+                  <Button className="rounded-full">Profile</Button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/auth" onClick={handleAuthClick}>
+                  <Button variant="secondary" className="rounded-full">Sign In</Button>
+                </Link>
+                <Link href="/auth" onClick={handleAuthClick}>
+                  <Button className="rounded-full">Get Started</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -64,11 +105,23 @@ export default function LandingPage() {
                   ZenZone is more than just an app. We're a team of guides, coaches, and community leaders dedicated to helping you find your calm.
                 </p>
                 <div className="flex flex-col gap-4 sm:flex-row">
-                  <Link href="/auth">
-                    <Button size="lg" className="w-full rounded-full sm:w-auto">
-                      Get Started for Free <ArrowRight className="ml-2" />
+                  {loading ? (
+                    <Button size="lg" className="w-full rounded-full sm:w-auto" disabled>
+                      Loading...
                     </Button>
-                  </Link>
+                  ) : isAuthenticated ? (
+                    <Link href="/home">
+                      <Button size="lg" className="w-full rounded-full sm:w-auto">
+                        Go to Home <ArrowRight className="ml-2" />
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Link href="/auth" onClick={handleAuthClick}>
+                      <Button size="lg" className="w-full rounded-full sm:w-auto">
+                        Get Started for Free <ArrowRight className="ml-2" />
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               </div>
               <div className="relative aspect-square w-full overflow-hidden rounded-3xl">
@@ -77,6 +130,8 @@ export default function LandingPage() {
                       src={heroImage.imageUrl}
                       alt={heroImage.description}
                       fill
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      priority
                       className="object-cover"
                       data-ai-hint={heroImage.imageHint}
                   />
@@ -183,6 +238,7 @@ export default function LandingPage() {
                     src={featureConnectImage.imageUrl}
                     alt={featureConnectImage.description}
                     fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
                     className="object-cover"
                     data-ai-hint={featureConnectImage.imageHint}
                   />
@@ -202,6 +258,7 @@ export default function LandingPage() {
                     src={featureConverseImage.imageUrl}
                     alt={featureConverseImage.description}
                     fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
                     className="object-cover"
                     data-ai-hint={featureConverseImage.imageHint}
                   />
@@ -298,11 +355,23 @@ export default function LandingPage() {
               Create an account in minutes and start your journey towards a more mindful social life.
             </p>
             <div className="mt-8">
-                <Link href="/auth">
+                {loading ? (
+                  <Button size="lg" className="rounded-full" disabled>
+                    Loading...
+                  </Button>
+                ) : isAuthenticated ? (
+                  <Link href="/home">
                     <Button size="lg" className="rounded-full">
-                    Join ZenZone Now
+                      Go to Home
                     </Button>
-                </Link>
+                  </Link>
+                ) : (
+                  <Link href="/auth" onClick={handleAuthClick}>
+                    <Button size="lg" className="rounded-full">
+                      Join ZenZone Now
+                    </Button>
+                  </Link>
+                )}
             </div>
           </div>
         </section>

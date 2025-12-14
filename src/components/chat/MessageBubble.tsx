@@ -27,7 +27,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                 "rounded-2xl p-3",
                 isMe ? "bg-primary text-primary-foreground rounded-br-none" : "bg-accent rounded-bl-none"
             )}>
-                <p>{message.content}</p>
+                <p className="whitespace-pre-wrap break-words">{message.content}</p>
             </div>
             {isMe && 
                 <div className="text-xs text-muted-foreground flex items-center gap-1">

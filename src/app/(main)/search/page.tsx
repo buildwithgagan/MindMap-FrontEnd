@@ -1,51 +1,158 @@
 'use client';
 
-import { useState } from 'react';
-import Image from 'next/image';
+import { useState, useEffect } from 'react';
 import {
   Search as SearchIcon,
-  User,
-  Hash,
-  MapPin,
   X,
-  Clock,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { posts, users } from '@/lib/data';
-import { cn } from '@/lib/utils';
-import Link from 'next/link';
+import { userService, chatService } from '@/lib/api';
+import type { User } from '@/lib/api';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useRouter } from 'next/navigation';
 
 const SearchPage = () => {
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [activeTab, setActiveTab] = useState('top');
+  const [activeTab, setActiveTab] = useState('accounts');
+  const [searchResults, setSearchResults] = useState<User[]>([]);
+  const [topResults, setTopResults] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [topLoading, setTopLoading] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<Array<{ type: 'account' | 'text'; value: string; user?: User }>>([]);
+  const router = useRouter();
 
-  const handleSearch = (e: React.FormEvent) => {
+  useEffect(() => {
+    // Load recent searches from localStorage
+    const saved = localStorage.getItem('recentSearches');
+    if (saved) {
+      try {
+        setRecentSearches(JSON.parse(saved));
+      } catch (e) {
+        console.error('Error loading recent searches:', e);
+      }
+    }
+    
+    // Load users by default for Accounts tab
+    loadUsers();
+  }, []);
+
+  const loadUsers = async (searchQuery?: string) => {
+    try {
+      setLoading(true);
+      const response = await userService.listUsers({ 
+        search: searchQuery,
+        pageSize: 20 
+      });
+      
+      if (response.success && response.data) {
+        // Handle both response structures: data.data or data.users
+        const users = (response.data as any).users || response.data.data || [];
+        setSearchResults(users);
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadTopUsers = async () => {
+    try {
+      setTopLoading(true);
+      const response = await userService.listUsers({ 
+        pageSize: 20 
+      });
+      
+      if (response.success && response.data) {
+        // Handle both response structures: data.data or data.users
+        const users = (response.data as any).users || response.data.data || [];
+        setTopResults(users);
+      }
+    } catch (error) {
+      console.error('Error loading top users:', error);
+    } finally {
+      setTopLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'top') {
+      loadTopUsers();
+    } else if (activeTab === 'accounts' && !isSearching) {
+      loadUsers();
+    }
+  }, [activeTab]);
+
+  const saveRecentSearch = (search: { type: 'account' | 'text'; value: string; user?: User }) => {
+    const updated = [search, ...recentSearches.filter(s => s.value !== search.value)].slice(0, 10);
+    setRecentSearches(updated);
+    localStorage.setItem('recentSearches', JSON.stringify(updated));
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (query.trim() !== '') {
-      setIsSearching(true);
+    const trimmedQuery = query.trim();
+    if (trimmedQuery === '') {
+      setIsSearching(false);
+      loadUsers(); // Load default users when search is cleared
+      return;
+    }
+
+    setIsSearching(true);
+    setLoading(true);
+
+    try {
+      const response = await userService.listUsers({ 
+        search: trimmedQuery, 
+        pageSize: 50 
+      });
+      
+      if (response.success && response.data) {
+        // Handle both response structures: data.data or data.users
+        const users = (response.data as any).users || response.data.data || [];
+        setSearchResults(users);
+        // Save to recent searches
+        if (users.length > 0) {
+          saveRecentSearch({ type: 'account', value: trimmedQuery, user: users[0] });
+        }
+      }
+    } catch (error) {
+      console.error('Error searching:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUserClick = async (user: User, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    try {
+      // Create or find conversation with this user
+      const response = await chatService.createOrFindConversation({
+        participantId: user.id,
+      });
+
+      if (response.success && response.data) {
+        // Navigate to chat page with conversation ID
+        router.push(`/chat?conversationId=${response.data.id}`);
+      } else {
+        console.error('Failed to create conversation');
+      }
+    } catch (error) {
+      console.error('Error creating conversation:', error);
     }
   };
 
   const handleClear = () => {
     setQuery('');
     setIsSearching(false);
+    loadUsers(); // Load default users when search is cleared
   };
-
-  const searchSuggestions = [
-    'serene landscapes',
-    'mindful cooking',
-    'minimalist architecture',
-  ];
-
-  const recentSearches = [
-    { type: 'account', value: 'miaw', user: users[1] },
-    { type: 'text', value: 'positive affirmations' },
-    { type: 'account', value: 'leorivera', user: users[2] },
-  ];
 
   const suggestionPills = [
     'meditation',
@@ -54,8 +161,6 @@ const SearchPage = () => {
     'calm',
     'art',
   ];
-
-  const searchResults = posts.flatMap((p) => p.media).slice(0, 15);
 
   const renderInitialView = () => (
     <div className="space-y-4">
@@ -75,67 +180,112 @@ const SearchPage = () => {
           </TabsTrigger>
           <TabsTrigger
             value="tags"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
+            disabled
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none opacity-50 cursor-not-allowed"
           >
             Tags
           </TabsTrigger>
           <TabsTrigger
             value="places"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
+            disabled
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none opacity-50 cursor-not-allowed"
           >
             Places
           </TabsTrigger>
         </TabsList>
         <TabsContent value="top">
           <div className="mt-4">
-            <h2 className="px-4 text-lg font-bold">Recent</h2>
-            <ul className="mt-2">
-              {recentSearches.map((item, index) => (
-                <li
-                  key={index}
-                  className="flex items-center justify-between px-4 py-3 hover:bg-accent"
-                >
-                  {item.type === 'account' && item.user ? (
-                    <Link
-                      href={`/profile/${item.user.username}`}
-                      className="flex w-full items-center gap-4"
-                    >
+            {topLoading ? (
+              <div className="p-4 space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-4">
+                    <Skeleton className="h-11 w-11 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-48" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : topResults.length === 0 ? (
+              <p className="p-4 text-muted-foreground">
+                No users found.
+              </p>
+            ) : (
+              <ul className="mt-2">
+                {topResults.map((user) => (
+                  <li
+                    key={user.id}
+                    className="flex items-center justify-between px-4 py-3 hover:bg-accent cursor-pointer"
+                    onClick={(e) => handleUserClick(user, e)}
+                  >
+                    <div className="flex w-full items-center gap-4">
                       <Avatar className="h-11 w-11">
-                        <AvatarImage
-                          src={item.user.avatar.imageUrl}
-                          data-ai-hint={item.user.avatar.imageHint}
-                        />
-                        <AvatarFallback>
-                          {item.user.name.charAt(0)}
-                        </AvatarFallback>
+                        <AvatarImage src={user.profileImage || ''} />
+                        <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-bold">{item.user.username}</p>
+                        <p className="font-bold">{user.name}</p>
                         <p className="text-sm text-muted-foreground">
-                          {item.user.name}
+                          {user.bio || 'No bio'}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {user.followersCount} followers
                         </p>
                       </div>
-                    </Link>
-                  ) : (
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary">
-                        <Clock className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                      <p className="font-semibold">{item.value}</p>
                     </div>
-                  )}
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <X className="h-4 w-4" />
-                  </Button>
-                </li>
-              ))}
-            </ul>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </TabsContent>
         <TabsContent value="accounts">
-          <p className="p-4 text-muted-foreground">
-            Search for accounts to follow.
-          </p>
+          {loading ? (
+            <div className="p-4 space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <Skeleton className="h-11 w-11 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-48" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : searchResults.length === 0 ? (
+            <p className="p-4 text-muted-foreground">
+              No users found.
+            </p>
+          ) : (
+            <div className="mt-4">
+              <ul className="mt-2">
+                {searchResults.map((user) => (
+                  <li
+                    key={user.id}
+                    className="flex items-center justify-between px-4 py-3 hover:bg-accent cursor-pointer"
+                    onClick={(e) => handleUserClick(user, e)}
+                  >
+                    <div className="flex w-full items-center gap-4">
+                      <Avatar className="h-11 w-11">
+                        <AvatarImage src={user.profileImage || ''} />
+                        <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-bold">{user.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {user.bio || 'No bio'}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {user.followersCount} followers
+                        </p>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </TabsContent>
         <TabsContent value="tags">
           <p className="p-4 text-muted-foreground">
@@ -159,24 +309,72 @@ const SearchPage = () => {
             key={pill}
             variant="secondary"
             className="flex-shrink-0 rounded-lg"
+            onClick={() => {
+              setQuery(pill);
+              // Trigger search
+              setIsSearching(true);
+              setLoading(true);
+              userService.listUsers({ search: pill, pageSize: 50 })
+                .then(response => {
+                  if (response.success && response.data) {
+                    // Handle both response structures: data.data or data.users
+                    const users = (response.data as any).users || response.data.data || [];
+                    setSearchResults(users);
+                  }
+                })
+                .catch(error => console.error('Error searching:', error))
+                .finally(() => setLoading(false));
+            }}
           >
             {pill}
           </Button>
         ))}
       </div>
-      <div className="grid grid-cols-3 gap-0.5">
-        {searchResults.map((media, index) => (
-          <div key={index} className="relative aspect-square">
-            <Image
-              src={media.imageUrl}
-              alt={media.description}
-              fill
-              className="object-cover"
-              data-ai-hint={media.imageHint}
-            />
-          </div>
-        ))}
-      </div>
+      {loading ? (
+        <div className="p-4 space-y-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="flex items-center gap-4">
+              <Skeleton className="h-11 w-11 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-48" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : searchResults.length === 0 ? (
+        <div className="p-8 text-center text-muted-foreground">
+          <p>No users found for "{query}"</p>
+        </div>
+      ) : (
+        <div className="mt-4">
+          <ul>
+            {searchResults.map((user) => (
+              <li
+                key={user.id}
+                className="flex items-center justify-between px-4 py-3 hover:bg-accent cursor-pointer"
+                onClick={(e) => handleUserClick(user, e)}
+              >
+                <div className="flex w-full items-center gap-4">
+                  <Avatar className="h-11 w-11">
+                    <AvatarImage src={user.profileImage || ''} />
+                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className="font-bold">{user.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {user.bio || 'No bio'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {user.followersCount} followers
+                    </p>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 

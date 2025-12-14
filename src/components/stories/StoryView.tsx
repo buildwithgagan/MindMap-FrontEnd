@@ -100,6 +100,7 @@ export default function StoryView({ story, onClose }: StoryViewProps) {
               src={currentItem.url}
               alt="Story content"
               fill
+              sizes="100vw"
               className="object-cover"
             />
           )}

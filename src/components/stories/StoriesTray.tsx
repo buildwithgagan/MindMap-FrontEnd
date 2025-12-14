@@ -42,7 +42,11 @@ export default function StoriesTray() {
                 <div className="relative">
                   <Avatar className="h-16 w-16 border-2 border-transparent">
                     <AvatarImage src={story.user.avatar.imageUrl} />
-                    <AvatarFallback>{story.user.name.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>
+                      {story.user.name && story.user.name.length > 0 
+                        ? story.user.name.charAt(0).toUpperCase() 
+                        : 'U'}
+                    </AvatarFallback>
                   </Avatar>
                   <div className="absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full border-2 border-card bg-primary">
                     <Plus className="h-4 w-4 text-primary-foreground" />
@@ -62,7 +66,9 @@ export default function StoriesTray() {
                     <Avatar className="h-[58px] w-[58px]">
                       <AvatarImage src={story.user.avatar.imageUrl} data-ai-hint={story.user.avatar.imageHint}/>
                       <AvatarFallback>
-                        {story.user.name.charAt(0)}
+                        {story.user.name && story.user.name.length > 0 
+                          ? story.user.name.charAt(0).toUpperCase() 
+                          : 'U'}
                       </AvatarFallback>
                     </Avatar>
                   </div>
