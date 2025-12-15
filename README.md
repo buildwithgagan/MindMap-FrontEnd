@@ -164,14 +164,28 @@ src/
    npm install
    ```
 
-3. **Set up environment variables** (if needed)
-   ```bash
-   cp .env.example .env.local
-   ```
-   Add your environment variables:
-   - Firebase configuration (if using Firebase)
-   - Genkit API keys (if using AI features)
-   - Other service API keys
+3. **Set up environment variables**
+
+   The project uses environment-specific configuration files:
+   
+   - **`.env.development`** - Automatically loaded when running `npm run dev`
+     - Uses `http://localhost:3000` for API calls
+   
+   - **`.env.production`** - Automatically loaded when running `npm run build` or `npm run start`
+     - Uses `https://mind-map-x41e.vercel.app` for API calls
+   
+   - **`.env.local`** - Local overrides (gitignored, optional)
+     - Can be used to override settings for your local development
+     - Copy from `.env.example` if needed
+   
+   **Environment Variables:**
+   - `NEXT_PUBLIC_API_BASE_URL` - Base URL for REST API calls
+   - `NEXT_PUBLIC_WS_BASE_URL` - Base URL for WebSocket/Socket.io connections (optional, falls back to API_BASE_URL)
+   
+   **For Vercel/Production Deployment:**
+   Set these environment variables in your Vercel project settings:
+   - `NEXT_PUBLIC_API_BASE_URL=https://mind-map-x41e.vercel.app`
+   - `NEXT_PUBLIC_WS_BASE_URL=https://mind-map-x41e.vercel.app` (optional)
 
 4. **Run the development server**
    ```bash

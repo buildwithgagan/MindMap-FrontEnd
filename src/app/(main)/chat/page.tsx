@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import ChatList from "@/components/chat/ChatList";
 import ChatWindow from "@/components/chat/ChatWindow";
 import type { Chat } from "@/lib/data";
@@ -17,7 +17,10 @@ import { useSearchParams, usePathname } from 'next/navigation';
 import { socketClient } from '@/lib/socket';
 import { apiClient } from '@/lib/api/client';
 
-export default function ChatPage() {
+// Force dynamic rendering to prevent static generation errors with useSearchParams
+export const dynamic = 'force-dynamic';
+
+function ChatPageContent() {
     const [conversations, setConversations] = useState<Chat[]>([]);
     const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
     const [loading, setLoading] = useState(true);
@@ -215,5 +218,23 @@ export default function ChatPage() {
                 </div>
             </Card>
         </div>
+    );
+}
+
+export default function ChatPage() {
+    return (
+        <Suspense fallback={
+            <div className="chat-page-container h-[calc(100vh-6rem)] md:h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)]">
+                <Card className="h-full w-full border-none bg-card shadow-diffused rounded-3xl overflow-hidden chat-page-card">
+                    <div className="flex items-center justify-center h-full">
+                        <div className="text-center p-8">
+                            <p className="text-muted-foreground text-lg">Loading...</p>
+                        </div>
+                    </div>
+                </Card>
+            </div>
+        }>
+            <ChatPageContent />
+        </Suspense>
     );
 }

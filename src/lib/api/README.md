@@ -6,13 +6,20 @@ This directory contains the complete API client implementation for the MindMap b
 
 1. **Environment Variables**
 
-   Create a `.env.local` file in the project root with:
-
+   The project uses environment-specific configuration:
+   
+   - **Development** (`.env.development`): Uses `http://localhost:3000`
+   - **Production** (`.env.production`): Uses `https://mind-map-x41e.vercel.app`
+   
+   Environment variables:
+   - `NEXT_PUBLIC_API_BASE_URL` - Base URL for REST API calls
+   - `NEXT_PUBLIC_WS_BASE_URL` - Base URL for WebSocket connections (optional, falls back to API_BASE_URL)
+   
+   For local overrides, create `.env.local` (gitignored):
    ```env
    NEXT_PUBLIC_API_BASE_URL=http://localhost:3000
+   NEXT_PUBLIC_WS_BASE_URL=http://localhost:3000
    ```
-
-   Replace `http://localhost:3000` with your actual API server URL.
 
 ## Structure
 
