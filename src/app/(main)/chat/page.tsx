@@ -17,9 +17,6 @@ import { useSearchParams, usePathname } from 'next/navigation';
 import { socketClient } from '@/lib/socket';
 import { apiClient } from '@/lib/api/client';
 
-// Force dynamic rendering to prevent static generation errors with useSearchParams
-export const dynamic = 'force-dynamic';
-
 function ChatPageContent() {
     const [conversations, setConversations] = useState<Chat[]>([]);
     const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
@@ -220,6 +217,9 @@ function ChatPageContent() {
         </div>
     );
 }
+
+// Force dynamic rendering to prevent static generation errors with useSearchParams
+export const dynamic = 'force-dynamic';
 
 export default function ChatPage() {
     return (
