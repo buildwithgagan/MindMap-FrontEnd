@@ -128,7 +128,270 @@ img[class*="object-cover"] {
         }
     }
     
+    @keyframes scroll-right-to-left {
+        0% {
+            transform: translateX(100%);
+        }
+        100% {
+            transform: translateX(-100%);
+        }
+    }
+    
     .animate-typing-bounce {
         animation: typing-bounce 1.4s ease-in-out infinite;
     }
+    
+    .scrolling-banner-wrapper {
+        position: relative;
+        width: 100%;
+        overflow: hidden;
+        display: flex;
+    }
+    
+    .scrolling-banner {
+        display: inline-flex;
+        white-space: nowrap;
+        animation: scroll-right-to-left 30s linear infinite;
+    }
+    
+    .scrolling-banner-wrapper .scrolling-banner:last-child {
+        animation-delay: -15s;
+    }
 }
+
+/* Chat Responsive Styles */
+.chat-page-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    z-index: 1;
+    isolation: isolate;
+    overflow: hidden;
+}
+
+.chat-page-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.chat-layout-wrapper {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+/* Messages List Panel */
+.messages-list-panel {
+    width: 100%;
+    max-width: 100%;
+    border-right: 1px solid hsl(var(--border));
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    background-color: hsl(var(--card));
+    z-index: 10;
+    position: relative;
+}
+
+@media (min-width: 768px) {
+    .messages-list-panel {
+        width: 300px;
+        min-width: 300px;
+        max-width: 300px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .messages-list-panel {
+        width: 280px;
+        min-width: 280px;
+        max-width: 280px;
+    }
+}
+
+@media (min-width: 1280px) {
+    .messages-list-panel {
+        width: 320px;
+        min-width: 320px;
+        max-width: 320px;
+    }
+}
+
+.messages-list-panel.mobile {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 30;
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.messages-list-panel.mobile.hidden {
+    transform: translateX(-100%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Chat Area */
+.chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: hsl(var(--card));
+    min-width: 0;
+    position: relative;
+}
+
+.chat-area.mobile {
+    width: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    z-index: 35;
+    transform: translateX(0);
+    opacity: 1;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.chat-area.mobile:not(.active) {
+    transform: translateX(100%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* No Conversation Selected */
+.no-conversation-selected {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: hsl(var(--muted-foreground));
+}
+
+@media (max-width: 767px) {
+    .no-conversation-selected {
+        display: none;
+    }
+}
+
+/* Message Input Responsive Adjustments */
+@media (max-width: 767px) {
+    /* Ensure input doesn't zoom on iOS */
+    .message-input,
+    input[type="text"],
+    input[type="search"] {
+        font-size: 16px !important;
+    }
+
+    /* Better touch targets on mobile */
+    button {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    /* Ensure chat panels don't overlap with bottom navbar */
+    .messages-list-panel.mobile,
+    .chat-area.mobile {
+        padding-bottom: env(safe-area-inset-bottom, 0);
+        height: calc(100% - env(safe-area-inset-bottom, 0));
+    }
+
+    /* Prevent body scroll when chat is open on mobile */
+    body:has(.chat-area.mobile.active) {
+        overflow: hidden;
+    }
+}
+
+/* Tablet adjustments - handled in main media query above */
+
+/* Small mobile adjustments */
+@media (max-width: 360px) {
+    .chat-layout-wrapper {
+        font-size: 0.875rem;
+    }
+}
+
+/* Landscape mobile */
+@media (max-width: 896px) and (orientation: landscape) {
+    .chat-page-container {
+        height: calc(100vh - 4rem);
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .messages-list-panel,
+    .chat-area {
+        transition: none;
+    }
+}
+
+/* Prevent overlap issues with fixed elements */
+@media (max-width: 767px) {
+    /* Ensure main content doesn't overlap with bottom navbar */
+    main {
+        padding-bottom: 4rem !important;
+        min-height: calc(100vh - 4rem);
+    }
+
+    /* Ensure chat page accounts for bottom navbar */
+    .chat-page-container {
+        height: calc(100vh - 4rem - 2rem) !important;
+        max-height: calc(100vh - 4rem - 2rem);
+    }
+}
+
+/* Full-size desktop chat layout */
+@media (min-width: 768px) {
+    /* Make chat page use more vertical space on desktop */
+    .chat-page-container {
+        height: calc(100vh - 4rem) !important;
+        max-height: calc(100vh - 4rem);
+    }
+    
+    /* Ensure chat area takes maximum available space */
+    .chat-area {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+    
+    /* Break out of container constraints on larger screens for wider chat */
+    @media (min-width: 1024px) {
+        .chat-page-container {
+            margin-left: -2rem;
+            margin-right: -2rem;
+            width: calc(100% + 4rem);
+            max-width: calc(100% + 4rem);
+        }
+    }
+    
+    /* On larger screens, break out even more */
+    @media (min-width: 1280px) {
+        .chat-page-container {
+            margin-left: calc(-1 * (100vw - 100% - 256px) / 2);
+            margin-right: calc(-1 * (100vw - 100% - 256px) / 2);
+            width: calc(100vw - 256px);
+            max-width: calc(100vw - 256px);
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+    }
+}
+
+/* Z-index hierarchy documentation:
+ * - Sidebar: z-40 (desktop only, hidden on mobile)
+ * - BottomNavbar: z-50 (mobile only)
+ * - Chat panels (desktop): z-10 (relative positioning)
+ * - Chat panels (mobile): z-30 (messages list), z-35 (chat area)
+ * - Main content: z-10 (relative)
+ * - Dialogs/Modals: z-50+ (handled by UI components)
+ */

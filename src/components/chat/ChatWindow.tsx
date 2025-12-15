@@ -19,9 +19,10 @@ type ChatWindowProps = {
     chat: Chat;
     onBack?: () => void;
     currentUserId: string;
+    isMobile?: boolean;
 };
 
-export default function ChatWindow({ chat, onBack, currentUserId }: ChatWindowProps) {
+export default function ChatWindow({ chat, onBack, currentUserId, isMobile = false }: ChatWindowProps) {
     // Debug: Make currentUserId accessible in console
     if (process.env.NODE_ENV === 'development') {
         (window as any).__debugChatWindowCurrentUserId = currentUserId;

@@ -107,6 +107,24 @@
       "description": "Two people having a deep conversation over coffee",
       "imageUrl": "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHx0d28lMjBwZW9wbGUlMjB0YWxraW5nJTIwY29mZmVlfGVufDB8fHx8MTc2NTg5Mzc0Nnww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "people talking"
+    },
+    {
+      "id": "feature-habits",
+      "description": "A person writing in a journal or planner, tracking habits",
+      "imageUrl": "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxqb3VybmFsJTIwd3JpdGluZ3xlbnwwfHx8fDE3NjU5MDU2NDB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "journal writing"
+    },
+    {
+      "id": "feature-checkins",
+      "description": "A person meditating or reflecting peacefully",
+      "imageUrl": "https://images.unsplash.com/photo-1506126613408-eca07ce68773?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxyZWZsZWN0aW9uJTIwbWluZGZ1bG5lc3N8ZW58MHx8fHwxNzY1OTA1NzIwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "meditation reflection"
+    },
+    {
+      "id": "feature-meditation",
+      "description": "A person in a peaceful meditation pose with calm surroundings",
+      "imageUrl": "https://images.unsplash.com/photo-1506126613408-eca07ce68773?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtZWRpdGF0aW9uJTIwcGVhY2VmdWx8ZW58MHx8fHwxNzY1OTA1ODAwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "peaceful meditation"
     }
   ]
 }

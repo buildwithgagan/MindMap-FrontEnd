@@ -48,7 +48,7 @@ export default function ChatList({ conversations, selectedChat, onSelectChat, lo
     }, []);
 
     return (
-        <div className="flex flex-col border-r h-full">
+        <div className="flex flex-col h-full md:border-r">
             <div className="p-4 border-b">
                 <div className="flex items-center justify-between mb-2">
                     <h1 className="text-2xl font-bold">Messages</h1>

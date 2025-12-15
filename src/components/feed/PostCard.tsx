@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -226,16 +226,77 @@ function MediaItem({
   }
 }
 
-export default function PostCard({ post }: PostCardProps) {
-  const [isLiked, setIsLiked] = useState(post.isLiked ?? false);
-  const [likesCount, setLikesCount] = useState(post.likesCount);
-  const [isLiking, setIsLiking] = useState(false);
+// Format number for display (e.g., 1234 -> 1.2K, 1234567 -> 1.2M)
+function formatCount(count: number | undefined): string {
+  const num = count ?? 0;
+  if (num === 0) return '0';
+  if (num < 1000) return num.toString();
+  if (num < 1000000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+}
 
+// Helper function to extract counts from post (handles both camelCase and snake_case)
+function getPostCounts(post: Post, isRepost: boolean) {
+  const displayPost = isRepost && post.originalPost ? post.originalPost : post;
+  
+  // Handle both camelCase and snake_case from API, and ensure numbers
+  const likes = Number(displayPost.likesCount ?? (displayPost as any).likes_count ?? 0);
+  const comments = Number(displayPost.commentsCount ?? (displayPost as any).comments_count ?? 0);
+  const reposts = Number(displayPost.repostsCount ?? (displayPost as any).reposts_count ?? 0);
+  const liked = displayPost.isLiked ?? (displayPost as any).is_liked ?? false;
+  
+  return { likes, comments, reposts, liked };
+}
+
+export default function PostCard({ post }: PostCardProps) {
   // Safely handle mediaItems - ensure it's always an array
   const displayPost = post.type === 'REPOST' && post.originalPost ? post.originalPost : post;
+  
+  // Get initial counts
+  const initialCounts = getPostCounts(post, post.type === 'REPOST');
+  
+  const [isLiked, setIsLiked] = useState(initialCounts.liked);
+  const [likesCount, setLikesCount] = useState(initialCounts.likes);
+  const [isLiking, setIsLiking] = useState(false);
+  const [repostsCount, setRepostsCount] = useState(initialCounts.reposts);
+  const [commentsCount, setCommentsCount] = useState(initialCounts.comments);
+
   const displayMediaItems = displayPost.mediaItems || [];
   const hasMultipleMedia = displayMediaItems.length > 1;
   const timestamp = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
+
+  // Update counts when post prop changes
+  useEffect(() => {
+    const counts = getPostCounts(post, post.type === 'REPOST');
+    
+    // Debug logging in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 PostCard counts update:', {
+        postId: post.id,
+        postType: post.type,
+        counts,
+        hasOriginalPost: !!post.originalPost,
+        originalPostLikes: post.originalPost?.likesCount,
+        postLikes: post.likesCount,
+      });
+    }
+    
+    setLikesCount(counts.likes);
+    setCommentsCount(counts.comments);
+    setRepostsCount(counts.reposts);
+    setIsLiked(counts.liked);
+  }, [
+    post.id, 
+    post.type,
+    post.likesCount, 
+    post.commentsCount, 
+    post.repostsCount, 
+    post.isLiked,
+    post.originalPost?.likesCount, 
+    post.originalPost?.commentsCount, 
+    post.originalPost?.repostsCount, 
+    post.originalPost?.isLiked
+  ]);
 
   const handleLike = async () => {
     if (isLiking) return;
@@ -256,8 +317,17 @@ export default function PostCard({ post }: PostCardProps) {
 
   const handleRepost = async () => {
     try {
-      await feedService.repost(post.id);
-      // Optionally refresh the feed or show a success message
+      const response = await feedService.repost(post.id);
+      if (response.success && response.data) {
+        // Update repost count from the response
+        const updatedPost = response.data.post || response.data;
+        if (updatedPost.repostsCount !== undefined) {
+          setRepostsCount(updatedPost.repostsCount);
+        } else {
+          // Fallback: increment if count not in response
+          setRepostsCount(prev => prev + 1);
+        }
+      }
     } catch (error) {
       console.error("Error reposting:", error);
     }
@@ -341,11 +411,11 @@ export default function PostCard({ post }: PostCardProps) {
           disabled={isLiking}
         >
           <Heart className={cn("h-5 w-5", isLiked && "fill-current")} />
-          <span className="text-sm">{likesCount}</span>
+          <span className="text-sm font-medium">{formatCount(likesCount)}</span>
         </Button>
         <Button variant="ghost" className="flex items-center gap-2 rounded-lg">
           <MessageCircle className="h-5 w-5" />
-          <span className="text-sm">{post.commentsCount}</span>
+          <span className="text-sm font-medium">{formatCount(commentsCount)}</span>
         </Button>
         <Button 
           variant="ghost" 
@@ -353,7 +423,7 @@ export default function PostCard({ post }: PostCardProps) {
           onClick={handleRepost}
         >
           <Repeat className="h-5 w-5" />
-          <span className="text-sm">{post.repostsCount}</span>
+          <span className="text-sm font-medium">{formatCount(repostsCount)}</span>
         </Button>
         <Button variant="ghost" className="flex items-center gap-2 rounded-lg">
           <Send className="h-5 w-5" />

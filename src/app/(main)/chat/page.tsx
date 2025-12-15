@@ -169,28 +169,50 @@ export default function ChatPage() {
     const showChatWindow = !isMobile || (isMobile && selectedChat);
 
     return (
-        <div className="h-[calc(100vh-10rem)]">
-            <Card className="h-full w-full border-none bg-card shadow-diffused md:grid md:grid-cols-3 rounded-3xl overflow-hidden">
-                <div className={cn(!showChatList && "hidden", "md:flex flex-col")}>
-                    <ChatList 
-                        conversations={conversations}
-                        selectedChat={selectedChat} 
-                        onSelectChat={handleSelectChat}
-                        loading={loading}
-                        error={error}
-                        onRetry={loadConversations}
-                    />
-                </div>
-                {selectedChat && (
-                    <div className={cn(!showChatWindow && "hidden", "md:flex flex-col col-span-2")}>
-                         <ChatWindow 
-                            key={selectedChat.id} 
-                            chat={selectedChat} 
-                            onBack={isMobile ? handleBack : undefined}
-                            currentUserId={user?.id || ''}
+        <div className="chat-page-container h-[calc(100vh-6rem)] md:h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)]">
+            <Card className="h-full w-full border-none bg-card shadow-diffused rounded-3xl overflow-hidden chat-page-card">
+                <div className="chat-layout-wrapper h-full flex">
+                    {/* Messages List Panel */}
+                    <div className={cn(
+                        "messages-list-panel",
+                        showChatList ? "visible" : "hidden",
+                        isMobile && "mobile",
+                        "flex flex-col"
+                    )}>
+                        <ChatList 
+                            conversations={conversations}
+                            selectedChat={selectedChat} 
+                            onSelectChat={handleSelectChat}
+                            loading={loading}
+                            error={error}
+                            onRetry={loadConversations}
                         />
                     </div>
-                )}
+
+                    {/* Chat Area */}
+                    <div className={cn(
+                        "chat-area",
+                        selectedChat ? "active" : "",
+                        isMobile && "mobile",
+                        "flex flex-col flex-1"
+                    )}>
+                        {selectedChat ? (
+                            <ChatWindow 
+                                key={selectedChat.id} 
+                                chat={selectedChat} 
+                                onBack={isMobile ? handleBack : undefined}
+                                currentUserId={user?.id || ''}
+                                isMobile={isMobile}
+                            />
+                        ) : (
+                            <div className="no-conversation-selected flex items-center justify-center h-full">
+                                <div className="text-center p-8">
+                                    <p className="text-muted-foreground text-lg">Select a conversation to start chatting</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </Card>
         </div>
     );

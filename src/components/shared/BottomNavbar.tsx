@@ -17,7 +17,7 @@ export default function BottomNavbar() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/80 backdrop-blur-sm md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur-sm md:hidden">
       <ul className="flex h-16 items-center justify-around">
         {navLinks.map((link) => (
           <li key={link.href}>
