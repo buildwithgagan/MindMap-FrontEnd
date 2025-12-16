@@ -55,7 +55,10 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    const url = `${this.baseUrl}${endpoint}`;
+    // Normalize URL to prevent double slashes
+    const baseUrl = this.baseUrl.endsWith('/') ? this.baseUrl.slice(0, -1) : this.baseUrl;
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const url = `${baseUrl}${normalizedEndpoint}`;
     const accessToken = this.getAccessToken();
 
     const headers: HeadersInit = {
@@ -204,7 +207,10 @@ class ApiClient {
     file: File,
     fieldName: string = 'file'
   ): Promise<ApiResponse<any>> {
-    const url = `${this.baseUrl}${endpoint}`;
+    // Normalize URL to prevent double slashes
+    const baseUrl = this.baseUrl.endsWith('/') ? this.baseUrl.slice(0, -1) : this.baseUrl;
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const url = `${baseUrl}${normalizedEndpoint}`;
     const accessToken = this.getAccessToken();
 
     const formData = new FormData();
