@@ -201,11 +201,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for socket connection events
     const handleSocketConnect = () => {
       setSocketConnected(true);
-      toast({
-        title: "Socket Connected",
-        description: "Real-time messaging is now active",
-        duration: 3000,
-      });
+      // Only show success toast in development
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      if (isDevelopment) {
+        toast({
+          title: "Socket Connected",
+          description: "Real-time messaging is now active",
+          duration: 3000,
+        });
+      }
     };
 
     // Listen for socket disconnection
@@ -215,15 +219,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Listen for socket errors (for debugging)
     const handleSocketError = (data: any) => {
-      console.error('Socket error event:', data);
-      // Only show toast for non-connection errors to avoid spam
-      if (data.error && !data.error.message?.includes('connection')) {
-        toast({
-          title: "Socket Error",
-          description: data.error.message || "An error occurred with the WebSocket connection",
-          variant: "destructive",
-          duration: 5000,
-        });
+      // In staging/production, suppress socket errors (different library will be used later)
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      if (isDevelopment) {
+        console.error('Socket error event:', data);
+        // Only show toast for non-connection errors to avoid spam
+        if (data.error && !data.error.message?.includes('connection')) {
+          toast({
+            title: "Socket Error",
+            description: data.error.message || "An error occurred with the WebSocket connection",
+            variant: "destructive",
+            duration: 5000,
+          });
+        }
+      } else {
+        // Silently log in staging/production
+        console.warn('Socket error (suppressed in production):', data.error?.message);
       }
     };
 

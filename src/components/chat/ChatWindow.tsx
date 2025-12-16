@@ -236,11 +236,17 @@ export default function ChatWindow({ chat, onBack, currentUserId, isMobile = fal
             }
         };
 
-        // Handle socket errors
+        // Handle socket errors (suppress in staging/production)
         const handleSocketError = (errorData: any) => {
-            console.error('Socket error:', errorData);
-            if (errorData.code && errorData.message) {
-                setError(`Socket error: ${errorData.message}`);
+            const isDevelopment = process.env.NODE_ENV === 'development';
+            if (isDevelopment) {
+                console.error('Socket error:', errorData);
+                if (errorData.code && errorData.message) {
+                    setError(`Socket error: ${errorData.message}`);
+                }
+            } else {
+                // Silently log in staging/production
+                console.warn('Socket error (suppressed in production):', errorData.message);
             }
         };
 

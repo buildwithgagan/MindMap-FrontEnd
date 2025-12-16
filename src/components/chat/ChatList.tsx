@@ -71,7 +71,7 @@ export default function ChatList({ conversations, selectedChat, onSelectChat, lo
                         )}
                     </div>
                 </div>
-                {!socketStatus.isConnected && !socketStatus.isConnecting && (
+                {!socketStatus.isConnected && !socketStatus.isConnecting && process.env.NODE_ENV === 'development' && (
                     <Alert variant="destructive" className="mt-2 mb-4">
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription className="text-xs">

@@ -10,12 +10,17 @@ const SOCKET_BASE_URL = process.env.NEXT_PUBLIC_WS_BASE_URL ||
   process.env.NEXT_PUBLIC_API_BASE_URL || 
   'http://localhost:3000';
 
+// Determine if we should suppress socket errors in UI (for staging/production)
+const isDevelopment = process.env.NODE_ENV === 'development';
+const shouldSuppressErrors = !isDevelopment; // Suppress errors in staging/production
+
 // Log Socket.io configuration for debugging
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && isDevelopment) {
   console.log('🔧 Socket.io Configuration:', {
     SOCKET_BASE_URL,
     NEXT_PUBLIC_WS_BASE_URL: process.env.NEXT_PUBLIC_WS_BASE_URL || 'not set',
     NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'not set',
+    shouldSuppressErrors,
   });
 }
 
@@ -60,37 +65,56 @@ class SocketClient {
 
   /**
    * Connect to Socket.io server with authentication
+   * In staging/production, connection failures are silently handled (no errors thrown)
    */
   connect(token: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      console.log('🔍 [DEBUG] Socket.connect() called with token:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
-      console.log('🔍 [DEBUG] Current connection status:', this.getConnectionStatus());
+      if (isDevelopment) {
+        console.log('🔍 [DEBUG] Socket.connect() called with token:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
+        console.log('🔍 [DEBUG] Current connection status:', this.getConnectionStatus());
+      }
 
       // Validate token
       if (!token || token.trim() === '') {
         const error = new Error('Cannot connect: Access token is missing or empty');
-        console.error('❌ [DEBUG]', error.message);
+        if (isDevelopment) {
+          console.error('❌ [DEBUG]', error.message);
+        }
+        if (shouldSuppressErrors) {
+          // Silently fail in staging/production
+          resolve();
+          return;
+        }
         reject(error);
         return;
       }
 
       // If already connected with the same token, resolve immediately
       if (this.socket?.connected && this.accessToken === token) {
-        console.log('🔌 [DEBUG] Socket.io already connected, skipping connection attempt');
+        if (isDevelopment) {
+          console.log('🔌 [DEBUG] Socket.io already connected, skipping connection attempt');
+        }
         resolve();
         return;
       }
 
       // If already connecting, wait for that attempt to complete
       if (this.isConnecting) {
-        console.log('🔌 [DEBUG] Socket.io connection already in progress, waiting...');
+        if (isDevelopment) {
+          console.log('🔌 [DEBUG] Socket.io connection already in progress, waiting...');
+        }
         const checkConnection = setInterval(() => {
           if (!this.isConnecting) {
             clearInterval(checkConnection);
             if (this.socket?.connected) {
               resolve();
             } else {
-              reject(new Error('Connection failed'));
+              // Silently resolve in staging/production, reject in development
+              if (shouldSuppressErrors) {
+                resolve();
+              } else {
+                reject(new Error('Connection failed'));
+              }
             }
           }
         }, 100);
@@ -107,14 +131,16 @@ class SocketClient {
       }
 
       try {
-        console.log('🔌 [DEBUG] Connecting to Socket.io server');
-        console.log('🔍 [DEBUG] Server URL:', SOCKET_BASE_URL);
-        console.log('🔍 [DEBUG] Token length:', token.length);
-        console.log('🔍 [DEBUG] Token starts with:', token.substring(0, 20));
-        console.log('🔍 [DEBUG] Environment variables:', {
-          NEXT_PUBLIC_WS_BASE_URL: process.env.NEXT_PUBLIC_WS_BASE_URL || 'not set',
-          NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'not set',
-        });
+        if (isDevelopment) {
+          console.log('🔌 [DEBUG] Connecting to Socket.io server');
+          console.log('🔍 [DEBUG] Server URL:', SOCKET_BASE_URL);
+          console.log('🔍 [DEBUG] Token length:', token.length);
+          console.log('🔍 [DEBUG] Token starts with:', token.substring(0, 20));
+          console.log('🔍 [DEBUG] Environment variables:', {
+            NEXT_PUBLIC_WS_BASE_URL: process.env.NEXT_PUBLIC_WS_BASE_URL || 'not set',
+            NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'not set',
+          });
+        }
 
         // Create Socket.io connection with authentication
         this.socket = io(SOCKET_BASE_URL, {
@@ -141,48 +167,59 @@ class SocketClient {
         // Set connection timeout (10 seconds)
         const connectionTimeout = setTimeout(() => {
           if (this.socket && !this.socket.connected) {
-            console.error('❌ [DEBUG] Socket.io connection timeout after 10 seconds');
-            console.error('💡 [DEBUG] Possible issues:');
-            console.error('   1. Socket.io server is not running on', SOCKET_BASE_URL);
-            console.error('   2. Server is not accepting Socket.io connections');
-            console.error('   3. Network/firewall is blocking the connection');
-            console.error('   4. CORS policy is blocking the connection');
-            console.error('   5. Authentication token is invalid');
+            if (isDevelopment) {
+              console.error('❌ [DEBUG] Socket.io connection timeout after 10 seconds');
+              console.error('💡 [DEBUG] Possible issues:');
+              console.error('   1. Socket.io server is not running on', SOCKET_BASE_URL);
+              console.error('   2. Server is not accepting Socket.io connections');
+              console.error('   3. Network/firewall is blocking the connection');
+              console.error('   4. CORS policy is blocking the connection');
+              console.error('   5. Authentication token is invalid');
+            } else {
+              // Log silently in production/staging
+              console.warn('Socket.io connection timeout (suppressed in production)');
+            }
             
             this.socket.disconnect();
             this.isConnecting = false;
             
             const timeoutError = new Error(
-              `Socket.io connection timeout. Server at ${SOCKET_BASE_URL} is not responding. ` +
-              `Please ensure the Socket.io server is running and accessible.`
+              `Socket.io connection timeout. Server at ${SOCKET_BASE_URL} is not responding.`
             );
             
-            this.emit('error', {
-              error: timeoutError,
-              url: SOCKET_BASE_URL,
-              message: 'Connection timeout - server not responding',
-              troubleshooting: {
-                checkServer: `Is the Socket.io server running on ${SOCKET_BASE_URL}?`,
-                checkEndpoint: 'Is the server endpoint correct?',
-                checkNetwork: 'Check browser Network tab for connection attempts',
-                checkCORS: 'Check if CORS is blocking the connection',
-                checkAuth: 'Verify the authentication token is valid',
-              },
-            });
-            
-            reject(timeoutError);
+            // Only emit error in development, silently handle in staging/production
+            if (!shouldSuppressErrors) {
+              this.emit('error', {
+                error: timeoutError,
+                url: SOCKET_BASE_URL,
+                message: 'Connection timeout - server not responding',
+                troubleshooting: {
+                  checkServer: `Is the Socket.io server running on ${SOCKET_BASE_URL}?`,
+                  checkEndpoint: 'Is the server endpoint correct?',
+                  checkNetwork: 'Check browser Network tab for connection attempts',
+                  checkCORS: 'Check if CORS is blocking the connection',
+                  checkAuth: 'Verify the authentication token is valid',
+                },
+              });
+              reject(timeoutError);
+            } else {
+              // Silently resolve in staging/production
+              resolve();
+            }
           }
         }, 10000);
 
         // Connection successful
         this.socket.on('connect', () => {
           clearTimeout(connectionTimeout);
-          console.log('✅ [DEBUG] Socket.io connected successfully');
-          console.log('🔍 [DEBUG] Connection details:', {
-            id: this.socket?.id,
-            connected: this.socket?.connected,
-            transport: this.socket?.io?.engine?.transport?.name || 'unknown',
-          });
+          if (isDevelopment) {
+            console.log('✅ [DEBUG] Socket.io connected successfully');
+            console.log('🔍 [DEBUG] Connection details:', {
+              id: this.socket?.id,
+              connected: this.socket?.connected,
+              transport: this.socket?.io?.engine?.transport?.name || 'unknown',
+            });
+          }
           this.isConnecting = false;
           this.emit('connect', {});
           resolve();
@@ -191,53 +228,65 @@ class SocketClient {
         // Connection error
         this.socket.on('connect_error', (error) => {
           clearTimeout(connectionTimeout);
-          console.error('❌ [DEBUG] Socket.io connection error:', error);
-          console.error('❌ [DEBUG] Error message:', error.message);
-          console.error('❌ [DEBUG] Error type:', error.type || 'unknown');
-          console.error('❌ [DEBUG] Server URL:', SOCKET_BASE_URL);
+          if (isDevelopment) {
+            console.error('❌ [DEBUG] Socket.io connection error:', error);
+            console.error('❌ [DEBUG] Error message:', error.message);
+            console.error('❌ [DEBUG] Error type:', error.type || 'unknown');
+            console.error('❌ [DEBUG] Server URL:', SOCKET_BASE_URL);
+          } else {
+            // Log silently in production/staging
+            console.warn('Socket.io connection error (suppressed in production):', error.message);
+          }
           
           this.isConnecting = false;
           
-          // Provide more detailed error information
-          const errorDetails = {
-            error,
-            url: SOCKET_BASE_URL,
-            message: error.message || 'Socket.io connection failed. Please check if the server is running and the endpoint is correct.',
-            troubleshooting: {
-              checkServer: 'Is the Socket.io server running?',
-              checkUrl: `Is the URL correct? ${SOCKET_BASE_URL}`,
-              checkNetwork: 'Check browser console for network errors',
-              checkCORS: 'Check if CORS is blocking the connection',
-              checkAuth: 'Verify the authentication token is valid',
-            },
-          };
-          
-          this.emit('error', errorDetails);
-          
-          // Reject on connection error
-          reject(error);
+          // Only emit error and reject in development
+          // In staging/production, silently handle errors
+          if (!shouldSuppressErrors) {
+            const errorDetails = {
+              error,
+              url: SOCKET_BASE_URL,
+              message: error.message || 'Socket.io connection failed. Please check if the server is running and the endpoint is correct.',
+              troubleshooting: {
+                checkServer: 'Is the Socket.io server running?',
+                checkUrl: `Is the URL correct? ${SOCKET_BASE_URL}`,
+                checkNetwork: 'Check browser console for network errors',
+                checkCORS: 'Check if CORS is blocking the connection',
+                checkAuth: 'Verify the authentication token is valid',
+              },
+            };
+            
+            this.emit('error', errorDetails);
+            reject(error);
+          } else {
+            // Silently resolve in staging/production - don't show errors to users
+            resolve();
+          }
         });
 
         // Disconnection
         this.socket.on('disconnect', (reason) => {
           clearTimeout(connectionTimeout);
-          console.log('🔌 [DEBUG] Socket.io disconnected:', reason);
+          if (isDevelopment) {
+            console.log('🔌 [DEBUG] Socket.io disconnected:', reason);
+            // Provide troubleshooting info
+            if (reason === 'io server disconnect') {
+              console.error('❌ [DEBUG] Server disconnected the socket');
+            } else if (reason === 'io client disconnect') {
+              console.log('ℹ️ [DEBUG] Client disconnected the socket');
+            } else if (reason === 'ping timeout' || reason === 'transport close') {
+              console.error('❌ [DEBUG] Connection lost - server may be unreachable');
+            }
+          }
           this.isConnecting = false;
           this.emit('disconnect', { reason });
-          
-          // Provide troubleshooting info
-          if (reason === 'io server disconnect') {
-            console.error('❌ [DEBUG] Server disconnected the socket');
-          } else if (reason === 'io client disconnect') {
-            console.log('ℹ️ [DEBUG] Client disconnected the socket');
-          } else if (reason === 'ping timeout' || reason === 'transport close') {
-            console.error('❌ [DEBUG] Connection lost - server may be unreachable');
-          }
         });
 
         // Listen for custom events and forward them
         this.socket.onAny((eventName, ...args) => {
-          console.log('📨 [DEBUG] Socket.io event received:', eventName, args);
+          if (isDevelopment) {
+            console.log('📨 [DEBUG] Socket.io event received:', eventName, args);
+          }
           
           // Map Socket.io events to our event system
           // Backend sends 'new_message', map it to both 'new_message' and 'message:new' for compatibility
@@ -246,7 +295,9 @@ class SocketClient {
             this.emit('message:new', args[0] || {}); // Also emit as message:new for backward compatibility
           } else if (eventName === 'message_status_update') {
             // Explicitly handle message_status_update
-            console.log('📊 [Socket] Forwarding message_status_update event:', args[0]);
+            if (isDevelopment) {
+              console.log('📊 [Socket] Forwarding message_status_update event:', args[0]);
+            }
             this.emit('message_status_update', args[0] || {});
           } else if (eventName === 'message:new' || eventName === 'message:delivered' || eventName === 'message:read' ||
               eventName === 'typing' || eventName === 'stop_typing' || eventName === 'conversation:updated') {
@@ -256,12 +307,18 @@ class SocketClient {
 
       } catch (error) {
         this.isConnecting = false;
-        console.error('❌ [DEBUG] Error creating Socket.io connection:', error);
-        console.error('💡 [DEBUG] This usually means:');
-        console.error('   1. Invalid server URL format');
-        console.error('   2. Browser does not support Socket.io');
-        console.error('   3. Network error during connection setup');
-        reject(error);
+        if (isDevelopment) {
+          console.error('❌ [DEBUG] Error creating Socket.io connection:', error);
+          console.error('💡 [DEBUG] This usually means:');
+          console.error('   1. Invalid server URL format');
+          console.error('   2. Browser does not support Socket.io');
+          console.error('   3. Network error during connection setup');
+          reject(error);
+        } else {
+          // Silently resolve in staging/production
+          console.warn('Socket.io connection error (suppressed in production)');
+          resolve();
+        }
       }
     });
   }
@@ -292,16 +349,24 @@ class SocketClient {
    */
   send(type: string, payload: any): void {
     if (!this.isConnected()) {
-      console.warn('Cannot send message: Socket.io not connected');
+      if (isDevelopment) {
+        console.warn('Cannot send message: Socket.io not connected');
+      }
       return;
     }
 
     try {
       // Emit the event to the server
       this.socket?.emit(type, payload);
-      console.log('📤 [DEBUG] Socket.io message sent:', type, payload);
+      if (isDevelopment) {
+        console.log('📤 [DEBUG] Socket.io message sent:', type, payload);
+      }
     } catch (error) {
-      console.error('Error sending Socket.io message:', error);
+      if (isDevelopment) {
+        console.error('Error sending Socket.io message:', error);
+      } else {
+        console.warn('Socket.io message send error (suppressed in production)');
+      }
     }
   }
 
