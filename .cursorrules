@@ -1,0 +1,34 @@
+# Mind Map Frontend - Project Rules
+
+This project uses a modular rules structure. See `.cursor/` directory for detailed rules.
+
+## Quick Reference
+
+- **Project Structure**: See `.cursor/01-project-structure.md`
+- **Coding Standards**: See `.cursor/02-coding-standards.md`
+- **TypeScript Rules**: See `.cursor/03-typescript-rules.md`
+- **Styling Conventions**: See `.cursor/04-styling-conventions.md`
+- **Component Patterns**: See `.cursor/05-component-patterns.md`
+- **API Integration**: See `.cursor/06-api-integration.md`
+- **State Management**: See `.cursor/07-state-management.md`
+- **Error Handling**: See `.cursor/08-error-handling.md`
+- **Best Practices**: See `.cursor/09-best-practices.md`
+
+## Technology Stack Summary
+
+- **Framework**: Next.js 15.5.9 (App Router)
+- **Language**: TypeScript 5 (strict mode)
+- **Styling**: Tailwind CSS 3.4.1 + shadcn/ui
+- **State**: React Context API
+- **Forms**: React Hook Form + Zod
+- **Real-time**: Socket.io Client
+- **Icons**: Lucide React
+
+## Key Principles
+
+1. **Consistency** - Follow existing patterns
+2. **Type Safety** - Strict TypeScript, no `any`
+3. **Error Handling** - Graceful error handling
+4. **User Experience** - Loading states, error messages
+5. **Performance** - Pagination, lazy loading
+6. **Maintainability** - Small, focused components
