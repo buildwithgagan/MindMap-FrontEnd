@@ -11,6 +11,44 @@ export interface PaginatedResponse<T> {
   hasMore: boolean;
 }
 
+// Stories Types
+export type StoryVisibility = 'PUBLIC' | 'FOLLOWERS';
+
+export interface StoriesFeedAuthor {
+  id: string;
+  name: string;
+  profileImage?: string;
+}
+
+export interface StoriesFeedStory {
+  id: string;
+  authorId: string;
+  mediaUrl: string;
+  mediaType: MediaType; // 'IMAGE' | 'VIDEO'
+  caption?: string;
+  visibility: StoryVisibility;
+  duration: number; // seconds
+  expiresAt: string;
+  createdAt: string;
+  isViewed: boolean;
+}
+
+export interface StoriesFeedItem {
+  author: StoriesFeedAuthor;
+  stories: StoriesFeedStory[];
+  hasUnseen: boolean;
+  latestStoryAt: string;
+}
+
+export interface StoriesFeedResponse {
+  items: StoriesFeedItem[];
+}
+
+export interface MarkStoryViewedData {
+  viewedAt: string;
+  alreadyViewed: boolean;
+}
+
 // Authentication Types
 export interface RegisterStartRequest {
   identifier: string; // email or phone

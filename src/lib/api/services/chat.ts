@@ -48,23 +48,7 @@ export const chatService = {
     const queryString = params.toString();
     const endpoint = `/api/v1/chat/conversations/${conversationId}/messages${queryString ? `?${queryString}` : ''}`;
 
-    try {
-      return await apiClient.fetchWithAuth<PaginatedResponse<Message>>(endpoint);
-    } catch (err) {
-      // Some deployments use a flatter messages endpoint instead of the conversations/:id/messages route.
-      // If we get a 404, retry a compatible alternative:
-      // GET /api/v1/chat/messages?conversationId=...&cursor=...&pageSize=...
-      const status = (err as any)?.status;
-      if (status === 404) {
-        const altParams = new URLSearchParams();
-        altParams.append('conversationId', conversationId);
-        if (query?.cursor) altParams.append('cursor', query.cursor);
-        if (query?.pageSize) altParams.append('pageSize', query.pageSize.toString());
-        const altEndpoint = `/api/v1/chat/messages?${altParams.toString()}`;
-        return apiClient.fetchWithAuth<PaginatedResponse<Message>>(altEndpoint);
-      }
-      throw err;
-    }
+    return apiClient.fetchWithAuth<PaginatedResponse<Message>>(endpoint);
   },
 
   // Send message
@@ -92,30 +76,13 @@ export const chatService = {
 
   // Send message via REST (staging transport)
   async sendMessageViaApi(data: SendMessageViaApiRequest): Promise<ApiResponse<Message>> {
-    try {
-      return await apiClient.fetchWithAuth<Message>('/api/v1/chat/messages/send', {
-        method: 'POST',
-        body: JSON.stringify({
-          conversationId: data.conversationId,
-          content: data.content,
-          type: data.type || 'TEXT',
-        }),
-      });
-    } catch (err) {
-      // Some deployments use POST /api/v1/chat/messages (no /send).
-      // If we get a 404, retry the alternative route with the same payload.
-      const status = (err as any)?.status;
-      if (status === 404) {
-        return apiClient.fetchWithAuth<Message>('/api/v1/chat/messages', {
-          method: 'POST',
-          body: JSON.stringify({
-            conversationId: data.conversationId,
-            content: data.content,
-            type: data.type || 'TEXT',
-          }),
-        });
-      }
-      throw err;
-    }
+    return apiClient.fetchWithAuth<Message>('/api/v1/chat/messages/send', {
+      method: 'POST',
+      body: JSON.stringify({
+        conversationId: data.conversationId,
+        content: data.content,
+        type: data.type || 'TEXT',
+      }),
+    });
   },
 };

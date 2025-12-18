@@ -43,6 +43,7 @@ export default function ChatWindow({ chat, onBack, currentUserId, isMobile = fal
     const hasMarkedAsReadRef = useRef(false); // Track if we've already marked this conversation as read
     const pollTimerRef = useRef<number | null>(null);
     const lastPollCursorRef = useRef<{ since?: string; lastMessageId?: string }>({});
+    const messagesRef = useRef<Message[]>([]);
 
     // Use typing indicator hook
     const { typingUsers, typingUsersWithNames, emitTyping, emitStopTyping } = useTypingIndicator({
@@ -120,6 +121,10 @@ export default function ChatWindow({ chat, onBack, currentUserId, isMobile = fal
             scrollToBottom();
         }
     }, [messages, loading]);
+
+    useEffect(() => {
+        messagesRef.current = messages;
+    }, [messages]);
 
     // Set up socket listeners for real-time messages
     useEffect(() => {
@@ -283,23 +288,29 @@ export default function ChatWindow({ chat, onBack, currentUserId, isMobile = fal
 
     // Staging/prod: poll for new messages while chat is open
     useEffect(() => {
+        // Poll in staging + production when using non-socket transport
         if (config.chatTransport !== 'polling' && config.chatTransport !== 'rest_only') {
             return;
         }
 
-        // Only poll in staging right now; prod is rest_only (no polling) unless we decide otherwise later
-        if (config.chatTransport !== 'polling') {
-            return;
-        }
-
         let cancelled = false;
+        const limit = 20;
 
         const pollOnce = async () => {
             try {
-                // NOTE: Some deployments do not expose GET /api/v1/chat/messages/poll.
-                // Poll the conversation messages endpoint instead (known supported route).
-                const response = await chatService.getMessages(chat.id, {
-                    pageSize: 20,
+                // Initialize cursor from the newest currently-loaded message (if any)
+                // so the first poll fetches only newer messages.
+                const currentMessages = messagesRef.current;
+                if (!lastPollCursorRef.current.since && !lastPollCursorRef.current.lastMessageId && currentMessages.length > 0) {
+                    const newest = currentMessages[currentMessages.length - 1];
+                    if (newest?.createdAt) lastPollCursorRef.current.since = newest.createdAt;
+                    if (newest?.id) lastPollCursorRef.current.lastMessageId = newest.id;
+                }
+
+                const response = await chatService.pollMessages({
+                    since: lastPollCursorRef.current.since,
+                    lastMessageId: lastPollCursorRef.current.lastMessageId,
+                    limit,
                 });
 
                 if (cancelled) return;
@@ -309,7 +320,11 @@ export default function ChatWindow({ chat, onBack, currentUserId, isMobile = fal
                     const messagesArray = payload.messages || payload.data || [];
 
                     if (Array.isArray(messagesArray) && messagesArray.length > 0) {
-                        const mapped = messagesArray.map((m: any) => mapApiMessageToMessage(m, currentUserId));
+                        // Defensive: poll endpoint may return messages across conversations
+                        const forThisConversation = messagesArray.filter((m: any) => m?.conversationId === chat.id);
+                        if (forThisConversation.length === 0) return;
+
+                        const mapped = forThisConversation.map((m: any) => mapApiMessageToMessage(m, currentUserId));
                         setMessages(prev => {
                             const byId = new Map(prev.map(m => [m.id, m]));
                             for (const msg of mapped) {
@@ -321,6 +336,15 @@ export default function ChatWindow({ chat, onBack, currentUserId, isMobile = fal
                                 return timeA - timeB;
                             });
                         });
+
+                        // Advance cursor to newest message we've seen from this conversation
+                        const newestPolled = [...forThisConversation].sort((a: any, b: any) => {
+                            const ta = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+                            const tb = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+                            return ta - tb;
+                        })[forThisConversation.length - 1];
+                        if (newestPolled?.createdAt) lastPollCursorRef.current.since = newestPolled.createdAt;
+                        if (newestPolled?.id) lastPollCursorRef.current.lastMessageId = newestPolled.id;
 
                         setTimeout(() => scrollToBottom(), 100);
                     }
