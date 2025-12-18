@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { isProd } from "@/lib/env";
+import { isDev } from "@/lib/env";
 import { mediaService, storiesService } from "@/lib/api";
 import type { Story, StoryVisibility } from "@/lib/api";
 import { Loader2, X } from "lucide-react";
@@ -102,7 +102,10 @@ export default function CreateStoryDialog({ open, onOpenChange, onCreated }: Cre
     try {
       const safeDuration = clampNumber(durationSeconds, MIN_DURATION_SECONDS, MAX_DURATION_SECONDS);
 
-      if (isProd) {
+      // Env behavior:
+      // - dev: send file directly to stories endpoint
+      // - staging/prod: upload to S3 via mediaService then send mediaUrl
+      if (!isDev) {
         const uploadRes = await mediaService.uploadMedia(file);
         if (!uploadRes.success || !uploadRes.data?.url) {
           throw new Error(uploadRes.message || "Failed to upload media");
@@ -149,7 +152,7 @@ export default function CreateStoryDialog({ open, onOpenChange, onCreated }: Cre
   // 4. Render
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg p-0">
+      <DialogContent className="flex max-h-[90vh] max-w-lg flex-col overflow-hidden p-0">
         <DialogHeader className="flex flex-row items-center justify-between border-b p-4">
           <DialogClose asChild>
             <Button variant="ghost" size="icon" className="rounded-full" disabled={loading}>
@@ -173,7 +176,7 @@ export default function CreateStoryDialog({ open, onOpenChange, onCreated }: Cre
           </Button>
         </DialogHeader>
 
-        <div className="space-y-4 p-4">
+        <div className="flex-1 overflow-y-auto space-y-4 p-4">
           <div className="space-y-2">
             <Label htmlFor="story-file">Photo / Video</Label>
             <Input
@@ -190,7 +193,8 @@ export default function CreateStoryDialog({ open, onOpenChange, onCreated }: Cre
               <div
                 className={cn(
                   "relative w-full overflow-hidden rounded-2xl bg-muted",
-                  "border border-border"
+                  "border border-border",
+                  "max-h-[55vh]"
                 )}
                 style={{ aspectRatio: "9/16" }}
               >

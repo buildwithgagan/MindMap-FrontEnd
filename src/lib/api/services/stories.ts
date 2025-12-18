@@ -1,5 +1,5 @@
 import { apiClient } from '../client';
-import { isProd } from '@/lib/env';
+import { isDev } from '@/lib/env';
 import type { ApiResponse, CreateStoryRequest, CreateStoryResponse, MarkStoryViewedData, StoriesFeedResponse } from '../types';
 
 export const storiesService = {
@@ -22,16 +22,16 @@ export const storiesService = {
     }
 
     // Environment-based transport:
-    // - dev/staging: send local file
-    // - prod: send mediaUrl (S3) (file is expected to already be uploaded via mediaService)
-    if (isProd) {
+    // - dev: send local file
+    // - staging/prod: send mediaUrl (S3) (file is expected to already be uploaded via mediaService)
+    if (!isDev) {
       if (!data.mediaUrl) {
-        throw new Error('mediaUrl is required in production');
+        throw new Error('mediaUrl is required in staging/production');
       }
       formData.append('mediaUrl', data.mediaUrl);
     } else {
       if (!data.file) {
-        throw new Error('file is required in development/staging');
+        throw new Error('file is required in development');
       }
       formData.append('file', data.file);
     }
