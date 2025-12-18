@@ -296,10 +296,10 @@ export default function ChatWindow({ chat, onBack, currentUserId, isMobile = fal
 
         const pollOnce = async () => {
             try {
-                const response = await chatService.pollMessages({
-                    since: lastPollCursorRef.current.since,
-                    lastMessageId: lastPollCursorRef.current.lastMessageId,
-                    limit: 20,
+                // NOTE: Some deployments do not expose GET /api/v1/chat/messages/poll.
+                // Poll the conversation messages endpoint instead (known supported route).
+                const response = await chatService.getMessages(chat.id, {
+                    pageSize: 20,
                 });
 
                 if (cancelled) return;
@@ -309,11 +309,6 @@ export default function ChatWindow({ chat, onBack, currentUserId, isMobile = fal
                     const messagesArray = payload.messages || payload.data || [];
 
                     if (Array.isArray(messagesArray) && messagesArray.length > 0) {
-                        // Advance cursors using newest message
-                        const newest = messagesArray[messagesArray.length - 1];
-                        if (newest?.createdAt) lastPollCursorRef.current.since = newest.createdAt;
-                        if (newest?.id) lastPollCursorRef.current.lastMessageId = newest.id;
-
                         const mapped = messagesArray.map((m: any) => mapApiMessageToMessage(m, currentUserId));
                         setMessages(prev => {
                             const byId = new Map(prev.map(m => [m.id, m]));
