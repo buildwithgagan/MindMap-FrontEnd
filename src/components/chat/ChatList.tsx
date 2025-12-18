@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { socketClient } from "@/lib/socket";
 import { useEffect, useState } from "react";
+import { isDev } from "@/lib/env";
 
 type ChatListProps = {
     conversations: Chat[];
@@ -23,6 +24,7 @@ export default function ChatList({ conversations, selectedChat, onSelectChat, lo
     const [socketStatus, setSocketStatus] = useState(socketClient.getConnectionStatus());
 
     useEffect(() => {
+        if (!isDev) return;
         // Update socket status periodically
         const interval = setInterval(() => {
             setSocketStatus(socketClient.getConnectionStatus());
@@ -53,7 +55,7 @@ export default function ChatList({ conversations, selectedChat, onSelectChat, lo
                 <div className="flex items-center justify-between mb-2">
                     <h1 className="text-2xl font-bold">Messages</h1>
                     <div className="flex items-center gap-2">
-                        {socketStatus.isConnected ? (
+                        {!isDev ? null : socketStatus.isConnected ? (
                             <div className="flex items-center gap-1 text-green-500 text-xs">
                                 <Wifi className="h-3 w-3" />
                                 <span>Connected</span>
@@ -71,7 +73,7 @@ export default function ChatList({ conversations, selectedChat, onSelectChat, lo
                         )}
                     </div>
                 </div>
-                {!socketStatus.isConnected && !socketStatus.isConnecting && process.env.NODE_ENV === 'development' && (
+                {!isDev ? null : (!socketStatus.isConnected && !socketStatus.isConnecting) && (
                     <Alert variant="destructive" className="mt-2 mb-4">
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription className="text-xs">

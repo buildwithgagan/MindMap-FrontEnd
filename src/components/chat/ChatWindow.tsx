@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { socketClient } from "@/lib/socket";
 import type { Message as ApiMessage } from "@/lib/api/types";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
+import { config, isDev } from "@/lib/env";
 
 type ChatWindowProps = {
     chat: Chat;
@@ -40,34 +41,40 @@ export default function ChatWindow({ chat, onBack, currentUserId, isMobile = fal
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
     const hasMarkedAsReadRef = useRef(false); // Track if we've already marked this conversation as read
+    const pollTimerRef = useRef<number | null>(null);
+    const lastPollCursorRef = useRef<{ since?: string; lastMessageId?: string }>({});
 
     // Use typing indicator hook
     const { typingUsers, typingUsersWithNames, emitTyping, emitStopTyping } = useTypingIndicator({
         socket: socketClient,
         conversationId: chat.id,
         currentUserId,
-        enabled: !!chat.id && !!currentUserId,
+        enabled: isDev && !!chat.id && !!currentUserId,
     });
 
     useEffect(() => {
         // Load messages when chat opens
         loadMessages();
-        
-        // Join conversation room when chat opens
+
+        if (!isDev) {
+            return;
+        }
+
+        // Join conversation room when chat opens (dev sockets only)
         const joinRoom = () => {
             if (socketClient.isConnected()) {
                 socketClient.joinConversation(chat.id);
             }
         };
-        
+
         // Join immediately if connected, otherwise wait for connection
         joinRoom();
-        
+
         // Also join when socket connects
         const unsubscribeConnect = socketClient.on('connect', () => {
             joinRoom();
         });
-        
+
         // Cleanup: Leave conversation room when chat closes
         return () => {
             unsubscribeConnect();
@@ -85,6 +92,7 @@ export default function ChatWindow({ chat, onBack, currentUserId, isMobile = fal
 
     // Mark conversation as read when user opens/views it (debounced to avoid excessive calls)
     useEffect(() => {
+        if (!isDev) return;
         // Only mark as read if:
         // 1. Socket is connected
         // 2. Messages have loaded
@@ -115,6 +123,7 @@ export default function ChatWindow({ chat, onBack, currentUserId, isMobile = fal
 
     // Set up socket listeners for real-time messages
     useEffect(() => {
+        if (!isDev) return;
         // Listen for new messages in this conversation
         // Backend sends 'new_message' event with MessageResult payload
         const handleNewMessage = (messageData: any) => {
@@ -269,6 +278,79 @@ export default function ChatWindow({ chat, onBack, currentUserId, isMobile = fal
             unsubscribeDelivered();
             unsubscribeRead();
             unsubscribeError();
+        };
+    }, [chat.id, currentUserId]);
+
+    // Staging/prod: poll for new messages while chat is open
+    useEffect(() => {
+        if (config.chatTransport !== 'polling' && config.chatTransport !== 'rest_only') {
+            return;
+        }
+
+        // Only poll in staging right now; prod is rest_only (no polling) unless we decide otherwise later
+        if (config.chatTransport !== 'polling') {
+            return;
+        }
+
+        let cancelled = false;
+
+        const pollOnce = async () => {
+            try {
+                const response = await chatService.pollMessages({
+                    since: lastPollCursorRef.current.since,
+                    lastMessageId: lastPollCursorRef.current.lastMessageId,
+                    limit: 20,
+                });
+
+                if (cancelled) return;
+
+                if (response.success && response.data) {
+                    const payload: any = response.data as any;
+                    const messagesArray = payload.messages || payload.data || [];
+
+                    if (Array.isArray(messagesArray) && messagesArray.length > 0) {
+                        // Advance cursors using newest message
+                        const newest = messagesArray[messagesArray.length - 1];
+                        if (newest?.createdAt) lastPollCursorRef.current.since = newest.createdAt;
+                        if (newest?.id) lastPollCursorRef.current.lastMessageId = newest.id;
+
+                        const mapped = messagesArray.map((m: any) => mapApiMessageToMessage(m, currentUserId));
+                        setMessages(prev => {
+                            const byId = new Map(prev.map(m => [m.id, m]));
+                            for (const msg of mapped) {
+                                byId.set(msg.id, msg);
+                            }
+                            return Array.from(byId.values()).sort((a, b) => {
+                                const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                                const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                                return timeA - timeB;
+                            });
+                        });
+
+                        setTimeout(() => scrollToBottom(), 100);
+                    }
+                }
+            } catch (e) {
+                // Keep polling resilient; surface only if user is already seeing errors.
+                if (process.env.NODE_ENV === 'development') {
+                    console.warn('[ChatWindow] pollMessages failed:', e);
+                }
+            }
+        };
+
+        // Reset cursor on chat change
+        lastPollCursorRef.current = {};
+
+        // Start polling
+        pollOnce();
+        pollTimerRef.current = window.setInterval(pollOnce, 3000);
+
+        return () => {
+            cancelled = true;
+            if (pollTimerRef.current) {
+                clearInterval(pollTimerRef.current);
+                pollTimerRef.current = null;
+            }
         };
     }, [chat.id, currentUserId]);
 
@@ -444,26 +526,50 @@ export default function ChatWindow({ chat, onBack, currentUserId, isMobile = fal
         scrollToBottom();
 
         try {
-            // Send message via socket
-            if (!socketClient.isConnected()) {
-                throw new Error('Socket not connected. Please check your connection.');
+            if (config.chatTransport === 'socket') {
+                // Send message via socket (dev only)
+                if (!socketClient.isConnected()) {
+                    throw new Error('Socket not connected. Please check your connection.');
+                }
+
+                // Fire send_message socket event with all necessary message items
+                console.log('🚀 [ChatWindow] Firing send_message socket event:', {
+                    conversationId: chat.id,
+                    content: trimmedMessage,
+                    type: 'TEXT',
+                });
+                socketClient.send('send_message', {
+                    conversationId: chat.id,
+                    content: trimmedMessage,
+                    type: 'TEXT',
+                });
+
+                // The real message will come back via the 'new_message' socket event
+                // which is handled in the useEffect hook above
+                // The optimistic message will be replaced when the real message arrives
+            } else if (config.chatTransport === 'polling') {
+                // Staging: Send via REST
+                const resp = await chatService.sendMessageViaApi({
+                    conversationId: chat.id,
+                    content: trimmedMessage,
+                    type: 'TEXT',
+                });
+
+                // If backend returns the message, replace optimistic immediately.
+                if (resp.success && resp.data) {
+                    const mappedMessage = mapApiMessageToMessage(resp.data as any, currentUserId);
+                    setMessages(prev => prev.map(m => (m.id === tempId ? mappedMessage : m)));
+                    if ((resp.data as any)?.createdAt) lastPollCursorRef.current.since = (resp.data as any).createdAt;
+                    if ((resp.data as any)?.id) lastPollCursorRef.current.lastMessageId = (resp.data as any).id;
+                }
+            } else {
+                // Production for now: REST send (same endpoint), real-time TBD
+                await chatService.sendMessageViaApi({
+                    conversationId: chat.id,
+                    content: trimmedMessage,
+                    type: 'TEXT',
+                });
             }
-
-            // Fire send_message socket event with all necessary message items
-            console.log('🚀 [ChatWindow] Firing send_message socket event:', {
-                conversationId: chat.id,
-                content: trimmedMessage,
-                type: 'TEXT',
-            });
-            socketClient.send('send_message', {
-                conversationId: chat.id,
-                content: trimmedMessage,
-                type: 'TEXT',
-            });
-
-            // The real message will come back via the 'new_message' socket event
-            // which is handled in the useEffect hook above
-            // The optimistic message will be replaced when the real message arrives
         } catch (error) {
             console.error('Error sending message:', error);
             // Remove optimistic message on error

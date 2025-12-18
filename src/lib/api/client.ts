@@ -5,7 +5,9 @@ import type {
   AuthResponse,
 } from './types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+import { config } from '@/lib/env';
+
+const API_BASE_URL = config.apiBaseUrl;
 
 // Lazy import socket client to avoid circular dependencies
 let socketClient: any = null;

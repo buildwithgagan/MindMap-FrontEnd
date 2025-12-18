@@ -4,14 +4,13 @@
  */
 
 import { io, Socket } from 'socket.io-client';
+import { config, isDev } from '@/lib/env';
 
 // Get base URL for Socket.io (should be HTTP/HTTPS, not ws/wss)
-const SOCKET_BASE_URL = process.env.NEXT_PUBLIC_WS_BASE_URL || 
-  process.env.NEXT_PUBLIC_API_BASE_URL || 
-  'http://localhost:3000';
+const SOCKET_BASE_URL = config.wsBaseUrl;
 
 // Determine if we should suppress socket errors in UI (for staging/production)
-const isDevelopment = process.env.NODE_ENV === 'development';
+const isDevelopment = isDev;
 const shouldSuppressErrors = !isDevelopment; // Suppress errors in staging/production
 
 // Log Socket.io configuration for debugging
@@ -69,6 +68,12 @@ class SocketClient {
    */
   connect(token: string): Promise<void> {
     return new Promise((resolve, reject) => {
+      // Hard-disable sockets outside development (staging uses polling; production socket TBD)
+      if (!isDevelopment) {
+        resolve();
+        return;
+      }
+
       if (isDevelopment) {
         console.log('🔍 [DEBUG] Socket.connect() called with token:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
         console.log('🔍 [DEBUG] Current connection status:', this.getConnectionStatus());
@@ -327,6 +332,13 @@ class SocketClient {
    * Disconnect from Socket.io server
    */
   disconnect() {
+    if (!isDevelopment) {
+      // No-op outside development
+      this.socket = null;
+      this.isConnecting = false;
+      this.shouldReconnect = false;
+      return;
+    }
     this.shouldReconnect = false;
 
     if (this.socket) {
@@ -348,6 +360,7 @@ class SocketClient {
    * Send message through Socket.io
    */
   send(type: string, payload: any): void {
+    if (!isDevelopment) return;
     if (!this.isConnected()) {
       if (isDevelopment) {
         console.warn('Cannot send message: Socket.io not connected');
@@ -423,6 +436,7 @@ class SocketClient {
    * Update access token and reconnect if needed
    */
   updateToken(token: string): void {
+    if (!isDevelopment) return;
     if (this.accessToken !== token) {
       this.accessToken = token;
       if (this.socket && this.isConnected()) {
@@ -439,6 +453,7 @@ class SocketClient {
    * Join a conversation room
    */
   joinConversation(conversationId: string): void {
+    if (!isDevelopment) return;
     if (!this.isConnected()) {
       console.warn('Cannot join conversation: Socket.io not connected');
       return;
@@ -456,6 +471,7 @@ class SocketClient {
    * Leave a conversation room
    */
   leaveConversation(conversationId: string): void {
+    if (!isDevelopment) return;
     if (!this.isConnected()) {
       console.warn('Cannot leave conversation: Socket.io not connected');
       return;
@@ -475,5 +491,7 @@ export const socketClient = new SocketClient();
 
 // Import debug utilities (side effect - registers global functions)
 if (typeof window !== 'undefined') {
-  import('./socket-debug');
+  if (isDevelopment) {
+    import('./socket-debug');
+  }
 }

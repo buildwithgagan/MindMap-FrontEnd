@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { useSearchParams, usePathname } from 'next/navigation';
 import { socketClient } from '@/lib/socket';
 import { apiClient } from '@/lib/api/client';
+import { isDev } from '@/lib/env';
 
 function ChatPageContent() {
     const [conversations, setConversations] = useState<Chat[]>([]);
@@ -44,6 +45,7 @@ function ChatPageContent() {
 
     // Listen for new messages to refresh conversation list
     useEffect(() => {
+        if (!isDev) return;
         if (!socketClient.isConnected()) {
             return;
         }
@@ -80,6 +82,7 @@ function ChatPageContent() {
 
     // Retry socket connection when navigating to messages tab (only if not connected)
     useEffect(() => {
+        if (!isDev) return;
         // Only retry when on chat page
         if (pathname === '/chat' && user) {
             const connectionStatus = socketClient.getConnectionStatus();

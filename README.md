@@ -168,24 +168,37 @@ src/
 
    The project uses environment-specific configuration files:
    
-   - **`.env.development`** - Automatically loaded when running `npm run dev`
-     - Uses `http://localhost:3000` for API calls
-   
-   - **`.env.production`** - Automatically loaded when running `npm run build` or `npm run start`
-     - Uses `https://mind-map-x41e.vercel.app` for API calls
-   
+   - **`NEXT_PUBLIC_APP_ENV`** is the single source of truth for app environment:
+     - `development` / `staging` / `production`
+   - This repo’s ignore rules block committing real `.env*` files; templates live in:
+     - `docs/env/development.env.example`
+     - `docs/env/staging.env.example`
+     - `docs/env/production.env.example`
+   - For local runs, copy one of those files to the appropriate Next.js env filename (or set vars in your shell):
+     - `docs/env/development.env.example` → `.env.development`
+     - `docs/env/staging.env.example` → `.env.staging`
+     - `docs/env/production.env.example` → `.env.production`
    - **`.env.local`** - Local overrides (gitignored, optional)
      - Can be used to override settings for your local development
-     - Copy from `.env.example` if needed
    
    **Environment Variables:**
+   - `NEXT_PUBLIC_APP_ENV` - `development` | `staging` | `production`
    - `NEXT_PUBLIC_API_BASE_URL` - Base URL for REST API calls
    - `NEXT_PUBLIC_WS_BASE_URL` - Base URL for WebSocket/Socket.io connections (optional, falls back to API_BASE_URL)
    
-   **For Vercel/Production Deployment:**
+   **For Vercel Deployment:**
    Set these environment variables in your Vercel project settings:
-   - `NEXT_PUBLIC_API_BASE_URL=https://mind-map-x41e.vercel.app`
-   - `NEXT_PUBLIC_WS_BASE_URL=https://mind-map-x41e.vercel.app` (optional)
+   - **Staging**
+     - `NEXT_PUBLIC_APP_ENV=staging`
+     - `NEXT_PUBLIC_API_BASE_URL=https://mind-map-git-staging-gavins-projects-73577f8a.vercel.app`
+   - **Production**
+     - `NEXT_PUBLIC_APP_ENV=production`
+     - `NEXT_PUBLIC_API_BASE_URL=https://mind-map-psi-beige.vercel.app`
+
+   **Chat transport by environment:**
+   - `development`: socket.io enabled (real-time)
+   - `staging`: socket disabled; message updates via polling (`GET /api/v1/chat/messages/poll`); send via REST (`POST /api/v1/chat/messages/send`)
+   - `production`: socket disabled for now (AWS socket TBD); send via REST (`POST /api/v1/chat/messages/send`)
 
 4. **Run the development server**
    ```bash

@@ -13,6 +13,18 @@ export interface SendMessageRequest {
   type?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'FILE';
 }
 
+export interface PollMessagesQuery {
+  since?: string; // ISO timestamp
+  lastMessageId?: string;
+  limit?: number; // 1-100 (default 20)
+}
+
+export interface SendMessageViaApiRequest {
+  conversationId: string;
+  content: string;
+  type?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'FILE';
+}
+
 export const chatService = {
   // Create or find conversation
   async createOrFindConversation(data: CreateConversationRequest): Promise<ApiResponse<Conversation>> {
@@ -44,6 +56,30 @@ export const chatService = {
     return apiClient.fetchWithAuth<Message>(`/api/v1/chat/conversations/${conversationId}/messages`, {
       method: 'POST',
       body: JSON.stringify({
+        content: data.content,
+        type: data.type || 'TEXT',
+      }),
+    });
+  },
+
+  // Poll messages (staging transport)
+  async pollMessages(query: PollMessagesQuery = {}): Promise<ApiResponse<PaginatedResponse<Message>>> {
+    const params = new URLSearchParams();
+    if (query.since) params.append('since', query.since);
+    if (query.lastMessageId) params.append('lastMessageId', query.lastMessageId);
+    if (typeof query.limit === 'number') params.append('limit', query.limit.toString());
+
+    const qs = params.toString();
+    const endpoint = `/api/v1/chat/messages/poll${qs ? `?${qs}` : ''}`;
+    return apiClient.fetchWithAuth<PaginatedResponse<Message>>(endpoint);
+  },
+
+  // Send message via REST (staging transport)
+  async sendMessageViaApi(data: SendMessageViaApiRequest): Promise<ApiResponse<Message>> {
+    return apiClient.fetchWithAuth<Message>('/api/v1/chat/messages/send', {
+      method: 'POST',
+      body: JSON.stringify({
+        conversationId: data.conversationId,
         content: data.content,
         type: data.type || 'TEXT',
       }),
