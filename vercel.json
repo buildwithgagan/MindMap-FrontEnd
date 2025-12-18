@@ -1,0 +1,3 @@
+{
+  "ignoreCommand": "bash -lc 'if [ \"$VERCEL_GIT_COMMIT_REF\" = \"Development\" ]; then echo \"Skipping Vercel build for Development branch\"; exit 0; fi; exit 1'"
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -107,7 +107,7 @@ export default function StoriesTray() {
     setViewingStory(null);
   };
 
-  const handleViewed = (storyId: string) => {
+  const handleViewed = useCallback((storyId: string) => {
     // Optimistically mark viewed in both tray state and the currently viewed story.
     setFeedItems((prev) =>
       prev.map((fi) => {
@@ -126,7 +126,7 @@ export default function StoriesTray() {
         stories: prev.stories.map((s) => (s.id === storyId ? { ...s, isViewed: true } : s)),
       };
     });
-  };
+  }, []);
 
   if (loading) {
     return <StoriesTraySkeleton />;

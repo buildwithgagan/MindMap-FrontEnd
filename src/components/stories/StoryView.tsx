@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ const DEFAULT_STORY_DURATION_MS = 5000; // 5 seconds
 export default function StoryView({ story, onClose, initialIndex = 0, onViewed }: StoryViewProps) {
   const [currentItemIndex, setCurrentItemIndex] = useState(0);
   const [progress, setProgress] = useState(0);
+  const viewedThisSessionRef = useRef<Set<string>>(new Set());
 
   // Initialize index when opening a story
   useEffect(() => {
@@ -76,7 +77,10 @@ export default function StoryView({ story, onClose, initialIndex = 0, onViewed }
     let cancelled = false;
     const currentItem = story.stories[currentItemIndex];
     if (!currentItem) return;
+    if (currentItem.isViewed) return;
+    if (viewedThisSessionRef.current.has(currentItem.id)) return;
     const markViewed = async () => {
+      viewedThisSessionRef.current.add(currentItem.id);
       // Optimistic UI update first
       onViewed?.(currentItem.id);
       try {
