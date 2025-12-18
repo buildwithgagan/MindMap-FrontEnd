@@ -14,6 +14,31 @@ export interface PaginatedResponse<T> {
 // Stories Types
 export type StoryVisibility = 'PUBLIC' | 'FOLLOWERS';
 
+export interface Story {
+  id: string;
+  authorId: string;
+  mediaUrl: string;
+  mediaType: MediaType; // 'IMAGE' | 'VIDEO'
+  caption?: string;
+  visibility: StoryVisibility;
+  duration: number; // seconds
+  expiresAt: string;
+  createdAt: string;
+  isViewed?: boolean;
+}
+
+export interface CreateStoryRequest {
+  file?: File;
+  mediaUrl?: string;
+  caption?: string;
+  visibility?: StoryVisibility;
+  durationSeconds?: number;
+}
+
+export interface CreateStoryResponse {
+  story: Story;
+}
+
 export interface StoriesFeedAuthor {
   id: string;
   name: string;

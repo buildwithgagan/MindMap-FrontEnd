@@ -53,7 +53,7 @@ class ApiClient {
   }
 
   // Base fetch method with error handling
-  private async fetch<T>(
+  async fetch<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
@@ -63,12 +63,26 @@ class ApiClient {
     const url = `${baseUrl}${normalizedEndpoint}`;
     const accessToken = this.getAccessToken();
 
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
     };
 
-    if (accessToken && !options.headers?.['Authorization']) {
+    // Merge headers from RequestInit (supports Headers, tuples, or plain object)
+    if (options.headers) {
+      if (options.headers instanceof Headers) {
+        options.headers.forEach((value, key) => {
+          headers[key] = value;
+        });
+      } else if (Array.isArray(options.headers)) {
+        options.headers.forEach(([key, value]) => {
+          headers[key] = value;
+        });
+      } else {
+        Object.assign(headers, options.headers as Record<string, string>);
+      }
+    }
+
+    if (accessToken && !headers['Authorization']) {
       headers['Authorization'] = `Bearer ${accessToken}`;
     }
 
@@ -270,6 +284,84 @@ class ApiClient {
       return data;
     } catch (error) {
       console.error('❌ File Upload Exception:', {
+        url,
+        error: error instanceof Error ? error.message : 'An unexpected error occurred',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('An unexpected error occurred');
+    }
+  }
+
+  // Upload FormData helper (multipart/form-data) with auth
+  async uploadFormData<T>(endpoint: string, formData: FormData): Promise<ApiResponse<T>> {
+    // Normalize URL to prevent double slashes
+    const baseUrl = this.baseUrl.endsWith('/') ? this.baseUrl.slice(0, -1) : this.baseUrl;
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const url = `${baseUrl}${normalizedEndpoint}`;
+    const accessToken = this.getAccessToken();
+
+    const headers: HeadersInit = {};
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    // Log multipart request (avoid logging form contents; may include files)
+    console.log('📤 FormData Upload Request:', {
+      method: 'POST',
+      url,
+      headers: { Authorization: accessToken ? '[REDACTED]' : undefined },
+    });
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      // Handle 204 No Content
+      if (response.status === 204) {
+        console.log('✅ FormData Upload Response (204 No Content):', {
+          url,
+          status: response.status,
+          data: {},
+        });
+        return {
+          success: true,
+          data: {} as T,
+        };
+      }
+
+      const data = await response.json();
+
+      console.log('📥 FormData Upload Response:', {
+        url,
+        status: response.status,
+        ok: response.ok,
+        data,
+      });
+
+      if (!response.ok) {
+        const errorMessage =
+          (data as any)?.error?.message ||
+          data.message ||
+          `HTTP error! status: ${response.status}`;
+
+        console.error('❌ FormData Upload Error:', {
+          url,
+          status: response.status,
+          error: errorMessage,
+          data,
+        });
+        throw new Error(errorMessage);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('❌ FormData Upload Exception:', {
         url,
         error: error instanceof Error ? error.message : 'An unexpected error occurred',
         stack: error instanceof Error ? error.stack : undefined,

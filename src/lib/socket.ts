@@ -49,13 +49,20 @@ class SocketClient {
    * Get connection status and debug info
    */
   getConnectionStatus() {
+    const manager = this.socket?.io as unknown as {
+      // Socket.io Manager has internal reconnection state; typings don't expose it.
+      _reconnecting?: boolean;
+      reconnectAttempts?: number;
+    } | null;
+    const isReconnecting = !!manager?._reconnecting;
+
     return {
       isConnected: this.isConnected(),
       isConnecting: this.isConnecting,
       readyState: this.socket?.connected ? 'OPEN' : (this.socket ? 'CLOSED' : 'NONE'),
       readyStateText: this.socket?.connected ? 'OPEN' : (this.socket ? 'CLOSED' : 'NONE'),
       hasToken: !!this.accessToken,
-      reconnectAttempts: this.socket?.io?.reconnecting ? (this.socket.io as any).reconnectAttempts || 0 : 0,
+      reconnectAttempts: isReconnecting ? (manager?.reconnectAttempts ?? 0) : 0,
       shouldReconnect: this.shouldReconnect,
       wsBaseUrl: SOCKET_BASE_URL,
       socketId: this.socket?.id || null,
@@ -234,9 +241,16 @@ class SocketClient {
         this.socket.on('connect_error', (error) => {
           clearTimeout(connectionTimeout);
           if (isDevelopment) {
+            const errorType = (() => {
+              if (typeof error === 'object' && error !== null && 'type' in error) {
+                const t = (error as { type?: unknown }).type;
+                return typeof t === 'string' ? t : 'unknown';
+              }
+              return 'unknown';
+            })();
             console.error('❌ [DEBUG] Socket.io connection error:', error);
             console.error('❌ [DEBUG] Error message:', error.message);
-            console.error('❌ [DEBUG] Error type:', error.type || 'unknown');
+            console.error('❌ [DEBUG] Error type:', errorType);
             console.error('❌ [DEBUG] Server URL:', SOCKET_BASE_URL);
           } else {
             // Log silently in production/staging

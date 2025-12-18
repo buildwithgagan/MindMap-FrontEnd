@@ -11,6 +11,7 @@ export function mapApiUserToUser(apiUser: ApiUser, currentUserId: string): User 
     username: apiUser.email?.split('@')[0] || apiUser.phoneNo || `user_${apiUser.id.slice(0, 8)}`,
     avatar: {
       id: `avatar-${apiUser.id}`,
+      description: apiUser.name,
       imageUrl: apiUser.profileImage || '',
       imageHint: apiUser.name,
     },
@@ -91,7 +92,7 @@ export function mapApiConversationToChat(apiConversation: ApiConversation, curre
         id: 'unknown',
         name: 'Unknown User',
         username: 'unknown',
-        avatar: { id: 'placeholder', imageUrl: '', imageHint: 'Unknown' },
+        avatar: { id: 'placeholder', description: 'Unknown user', imageUrl: '', imageHint: 'Unknown' },
         bio: '',
         stats: { followers: 0, following: 0 },
         isVerified: { email: false, phone: false },
